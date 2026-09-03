@@ -992,3 +992,19 @@ afterEach(()  => { Reflect.deleteProperty(document, "modelContext"); });
 - Pin real versions after `npm install`; the `package.json` above has floors, not resolved versions.
 - `evals/run.ts` needs `@anthropic-ai/sdk` and `dotenv` as devDependencies, reading `../.secrets.env`. Never commit.
 - Copy `.mcp.json` from `cloudflare/agents/examples/webmcp-react` verbatim so a coding agent can drive the live page through `chrome-devtools-mcp`.
+
+---
+
+# (d) Reconciliation with the foundation already committed (`dd9f17c`)
+
+A parallel agent landed `src/webmcp/{shim,registry,types}.ts`, `wrangler.jsonc`, `vite.config.ts`, `package.json`, `evals/run.mjs` and `tests/` before this study was written. That foundation is sound and closer to observed Chrome 152 behaviour than section (b) assumed in two places (it models `inputSchema` as a JSON **string** and `executeTool(tool, argsJson) -> string`, which matches `page-agent`'s `typeof tool.inputSchema === 'string'` fallback in A9). Do not rewrite it. Apply these seven deltas instead.
+
+1. **`vite.config.ts` has `base: '/'`.** That hard-blocks the GitHub Pages fallback, which serves from `/webmcp-dojo/`. Change to `base: process.env.PUBLIC_BASE ?? './'` and keep the router hash-based, so one `dist/` deploys to both hosts with no rebuild. This is the single change that makes the fallback in B5 actually usable at 12:30.
+2. **`sourcemap: false`.** Set it to `true`. Judges "may use automated AI-driven analysis" and may open DevTools; readable source is free evidence for the WebMCP Leverage criterion.
+3. **No budget enforcement anywhere.** Add `src/webmcp/budget.ts` per A8 and call it from the registry: 30 chars per tool name and per parameter name, 500 per tool description, 150 per parameter description, 1500 per tool output. Publish the measured maxima in the README.
+4. **The shim resolves silently on an already-aborted signal** (`if (options?.signal?.aborted) return Promise.resolve()`). Chrome's own polyfill throws `signal.reason ?? new DOMException('Aborted','AbortError')` (polyfill L163-165). A shim that is more forgiving than the browser hides a real bug. Make it reject.
+5. **The shim does not validate the tool-name format.** Chrome's polyfill enforces `/^[a-zA-Z0-9_.-]{1,128}$/` and throws `DOMException('Invalid tool name format','InvalidStateError')`, and Chrome's security guidance caps names at 30. A belt tool named with a space or a colon would pass every local test and vanish in ChatGPT. Add the regex plus the 30-char cap.
+6. **The shim does not require `description`.** The polyfill throws `DOMException('Invalid tool description','InvalidStateError')` when it is missing or non-string (L138-140). Add it, so a belt that forgets a description fails in tests instead of in front of a judge.
+7. **`@anthropic-ai/sdk` sits in `dependencies`.** It is Node-only, used by `evals/run.mjs`, and never enters the browser bundle. Move it to `devDependencies` so the README can honestly say the shipped page has zero runtime dependencies.
+
+Also still missing and cheap: `.mcp.json` copied verbatim from `cloudflare/agents/examples/webmcp-react` (A11), and the `.github/workflows/pages.yml` from B5.
