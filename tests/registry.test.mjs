@@ -11,9 +11,10 @@ export async function run({ native }) {
     const engine = await b.page.evaluate(() => window.__dojoTest.engine)
     assert(engine === (native ? 'native' : 'shim'), `engine should be ${native ? 'native' : 'shim'}, got ${engine}`)
 
+    await b.page.evaluate(() => window.__dojoTest.registerPersistent())
     await b.page.evaluate(() => window.__dojoTest.activateA())
     let tools = await listTools(b.page)
-    assert(tools.map((t) => t.name).sort().join() === 'a_read,a_write', 'set A registered: ' + tools.map((t) => t.name))
+    assert(tools.map((t) => t.name).sort().join() === 'a_read,a_write,always_on', 'set A + persistent registered: ' + tools.map((t) => t.name))
     assert(tools.find((t) => t.name === 'a_read').annotations.readOnlyHint === true, 'readOnlyHint preserved')
     assert(tools.find((t) => t.name === 'a_read').inputSchema.properties.q.description.length > 0, 'param description present')
 
@@ -27,7 +28,9 @@ export async function run({ native }) {
 
     await b.page.evaluate(() => window.__dojoTest.activateB())
     tools = await listTools(b.page)
-    assert(tools.map((t) => t.name).join() === 'b_only', 'set B replaced set A: ' + tools.map((t) => t.name))
+    assert(tools.map((t) => t.name).sort().join() === 'always_on,b_only', 'set B replaced set A, always_on survived: ' + tools.map((t) => t.name))
+    const on = await callTool(b.page, 'always_on', {})
+    assert(on.text === 'on', 'persistent tool still callable after switch')
     const changes = await b.page.evaluate(() => window.__dojoTest.toolchanges)
     assert(changes >= 2, 'toolchange fired on register and abort: ' + changes)
 

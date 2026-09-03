@@ -62,12 +62,15 @@ export function toSchema(spec: ToolSpec): JsonSchema {
 
 export class ToolRegistry {
   private controller: AbortController | null = null
+  private persistentController: AbortController | null = null
   private active: ActiveTool[] = []
+  private persistent: ActiveTool[] = []
   private listeners = new Set<Listener>()
   private seq = 0
   currentSet = ''
 
-  get tools(): readonly ActiveTool[] { return this.active }
+  /** Belt tools plus the always-on tools, in registration order. */
+  get tools(): readonly ActiveTool[] { return [...this.persistent, ...this.active] }
 
   on(fn: Listener): () => void {
     this.listeners.add(fn)
@@ -76,15 +79,46 @@ export class ToolRegistry {
 
   private emit(ev: RegistryEvent) { for (const l of this.listeners) l(ev) }
 
-  /** Replace the whole active tool set. Old tools are unregistered via AbortSignal first. */
+  /** Tools that stay registered for the life of the page (the orientation tool). Registered once. */
+  async registerPersistent(specs: ToolSpec[]): Promise<void> {
+    if (this.persistentController) return
+    const controller = new AbortController()
+    this.persistentController = controller
+    this.persistent = await this.registerSet('dojo', specs, controller)
+    this.emit({ type: 'set-changed', set: this.currentSet, tools: this.tools.slice() })
+  }
+
+  /**
+   * Replace the belt tool set. The new set is registered BEFORE the old one is
+   * aborted, so the agent never observes an empty tool surface (a removed tool
+   * carries no explanation; see docs/research/agent-behavior.md, bug #3).
+   * Names must not collide across consecutive sets (Chrome rejects duplicates).
+   */
   async activate(set: string, specs: ToolSpec[]): Promise<void> {
-    this.controller?.abort()
+    const previous = this.controller
     const controller = new AbortController()
     this.controller = controller
     this.currentSet = set
+    const next = await this.registerSet(set, specs, controller)
+    if (this.controller !== controller) { controller.abort(); return } // superseded while awaiting
+    previous?.abort()
+    this.active = next
+    this.emit({ type: 'set-changed', set, tools: this.tools.slice() })
+  }
+
+  /** Unregister the belt set (persistent tools stay). */
+  clear(): void {
+    this.controller?.abort()
+    this.controller = null
+    this.active = []
+    this.currentSet = ''
+    this.emit({ type: 'set-changed', set: '', tools: this.tools.slice() })
+  }
+
+  private async registerSet(set: string, specs: ToolSpec[], controller: AbortController): Promise<ActiveTool[]> {
     const mc = document.modelContext
     if (!mc) throw new Error('document.modelContext is not available')
-    const next: ActiveTool[] = []
+    const out: ActiveTool[] = []
     for (const spec of specs) {
       if (!NAME_RE.test(spec.name)) throw new Error(`tool name ${spec.name} must be 1-30 chars of [A-Za-z0-9_.-]`)
       if (spec.description.length > BUDGET.description) throw new Error(`tool ${spec.name} description over ${BUDGET.description} chars`)
@@ -93,29 +127,18 @@ export class ToolRegistry {
         title: spec.title,
         description: spec.description,
         inputSchema: toSchema(spec),
-        annotations: spec.annotations,
+        annotations: { readOnlyHint: !!spec.annotations?.readOnlyHint, untrustedContentHint: !!spec.annotations?.untrustedContentHint },
         execute: (args) => this.run(set, spec, args ?? {}),
       }
       await mc.registerTool(descriptor, { signal: controller.signal })
-      next.push({ spec, set, descriptor })
+      out.push({ spec, set, descriptor })
     }
-    if (this.controller !== controller) return // superseded while awaiting
-    this.active = next
-    this.emit({ type: 'set-changed', set, tools: next })
-  }
-
-  /** Unregister everything. */
-  clear(): void {
-    this.controller?.abort()
-    this.controller = null
-    this.active = []
-    this.currentSet = ''
-    this.emit({ type: 'set-changed', set: '', tools: [] })
+    return out
   }
 
   /** Execute an active tool by name through the same wrapper an engine would hit (used by the inspector). */
   async invoke(name: string, args: Record<string, unknown>): Promise<ToolResult> {
-    const t = this.active.find((a) => a.spec.name === name)
+    const t = this.tools.find((a) => a.spec.name === name)
     if (!t) throw new Error(`no active tool named ${name}`)
     return this.run(t.set, t.spec, args)
   }

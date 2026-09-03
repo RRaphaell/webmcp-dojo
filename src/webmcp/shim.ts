@@ -75,6 +75,12 @@ export type EngineKind = 'native' | 'shim'
 /** Installs the shim if no engine is present. Returns which engine the page ended up with. */
 export function ensureModelContext(): EngineKind {
   if (typeof document.modelContext?.registerTool === 'function') return 'native'
+  // Some builds still expose the pre-July namespace. Alias it rather than shadow it.
+  const nav = (navigator as unknown as { modelContext?: ModelContextLike }).modelContext
+  if (nav && typeof nav.registerTool === 'function') {
+    Object.defineProperty(document, 'modelContext', { value: nav, configurable: true, enumerable: false, writable: false })
+    return 'native'
+  }
   const shim = new ShimModelContext()
   Object.defineProperty(document, 'modelContext', { value: shim, configurable: true, enumerable: false, writable: false })
   return 'shim'

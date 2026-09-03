@@ -15,6 +15,9 @@ export function installTestHooks(engine: EngineKind): void {
   registry.on((ev) => { if (ev.type === 'call') calls.push(ev.record) })
   const hooks: Record<string, unknown> = { ready: false, engine, toolchanges: 0, calls: () => calls }
   document.modelContext?.addEventListener('toolchange', () => { hooks.toolchanges = (hooks.toolchanges as number) + 1 })
+  hooks.registerPersistent = () => registry.registerPersistent([
+    { name: 'always_on', description: 'Always registered. Test tool.', annotations: { readOnlyHint: true }, execute: async () => text('on') },
+  ])
   hooks.activateA = () => registry.activate('A', [
     { name: 'a_read', description: 'Read something back. Test tool.', params: { q: { type: 'string', description: 'query' } }, annotations: { readOnlyHint: true }, execute: async (a) => text('read:' + a.q) },
     { name: 'a_write', description: 'Write something. Test tool.', params: { value: { type: 'string', description: 'value to write' } }, execute: async (a) => { if (!a.value) throw new Error('Missing "value". Provide the value to write.'); return text('wrote:' + a.value) } },
