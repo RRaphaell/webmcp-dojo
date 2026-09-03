@@ -309,7 +309,7 @@ function panel(ctx: BeltContext): void {
   const tag = s.asked
     ? `<div style="margin-top:14px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <canvas id="seal-canvas" width="260" height="120" style="display:block;touch-action:none;cursor:pointer;user-select:none;-webkit-user-select:none;border-radius:10px"></canvas>
-        <p class="muted" style="max-width:280px;margin:0">Press and hold the tag for about a second. The five characters are made the moment you hold it, on this canvas, and nowhere else. Read them to your agent.</p>
+        <p class="muted" style="max-width:280px;margin:0">Press and hold the tag for a second and a half. The five characters are made the moment you hold it, on this canvas, and nowhere else. Read them to your agent.</p>
       </div>`
     : '<p class="muted" style="margin-top:12px">The crate is on the mat with its tamper seal still on. The tag comes up here once the agent asks the dojo about the delivery.</p>'
   ctx.render(`<h3>Today's delivery</h3>${rows}${tag}${s.status ? `<p class="mono" style="margin-top:10px">${esc(s.status)}</p>` : ''}`, (root) => bindSeal(ctx, root))
@@ -352,7 +352,7 @@ export const belt: Belt = {
         s.asked = true
         // The seal tag only exists on screen once the agent has looked at the delivery.
         if (!s.code && !s.finished) {
-          ctx.askHuman({ kind: 'clue', prompt: 'Press and hold the seal tag for about a second, then read the five characters to your agent.', control: '#seal-canvas', holdMs: HOLD_MS })
+          ctx.askHuman({ kind: 'clue', prompt: 'Press and hold the seal tag for a second and a half, then read the five characters to your agent.', control: '#seal-canvas', holdMs: HOLD_MS })
         }
         panel(ctx)
         const d = s.delivery

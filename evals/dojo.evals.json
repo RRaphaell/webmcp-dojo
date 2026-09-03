@@ -345,7 +345,7 @@
           "content": [
             {
               "type": "text",
-              "text": "p-1 is still pending. The card is on the person's screen and they have not answered. Say what you are waiting for, then call check_proposal again."
+              "text": "p-1 is still pending. The card is on the person's screen and they have not answered. Say what you are waiting for, and wait for them to press a button before you check again."
             }
           ]
         }

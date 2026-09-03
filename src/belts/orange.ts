@@ -149,11 +149,11 @@ function settle(ctx: BeltContext): boolean {
     const cls = s.world.classes.find((c) => c.id === p.classId)
     if (cls) cls.time = p.to
     s.writes.push({ proposalId: p.id, classId: p.classId, from: p.from, to: p.to, at })
-    ctx.say(`you approved ${p.id}. ${p.classId} now starts ${p.to}.`)
+    ctx.say(`you approved ${p.id}. ${p.classId} now starts ${p.to}. Now tell your agent to check the proposal.`)
   } else {
     p.status = 'rejected'
     p.rejectionReason = ctx.humanReason().slice(0, 160)
-    ctx.say(`you rejected ${p.id}. your reason goes back to the agent on its next call.`)
+    ctx.say(`you rejected ${p.id}. your reason goes back to the agent on its next call. Now tell your agent to check the proposal.`)
   }
   ctx.clearHumanAnswer()
   panel(ctx)
@@ -289,14 +289,15 @@ export const belt: Belt = {
         if (!p) return text(`No proposal "${wanted}". The proposals made on this belt are ${known}. Call check_proposal again with one of them.`)
 
         if (p.status === 'pending') {
-          const now = Date.now()
-          s.pendingChecks.push(now)
-          const recent = s.pendingChecks.filter((t) => now - t <= 20000)
-          if (recent.length > 3 && !s.spammed) { s.spammed = true; ctx.sensei('polling') }
-          if (recent.length > 3) return text(`${p.id} is still pending. That is ${recent.length} checks in 20 seconds. Stop polling: tell the person you are waiting on their answer for ${p.classId} at ${p.to}, and check again once they have pressed a button.`)
-          return text(`${p.id} is still pending. The card is on the person's screen and they have not answered. Say what you are waiting for, then call check_proposal again.`)
+          // Polling is counted, not timed: consecutive pending checks with no answer in between, at any pace.
+          s.pendingChecks.push(Date.now())
+          const streak = s.pendingChecks.length
+          if (streak > 3 && !s.spammed) { s.spammed = true; ctx.sensei('polling') }
+          if (streak > 3) return text(`${p.id} is still pending. That is ${streak} checks with no answer yet. Stop polling: tell the person you are waiting on their answer for ${p.classId} at ${p.to}, and wait for them to press a button.`)
+          return text(`${p.id} is still pending. The card is on the person's screen and they have not answered. Say what you are waiting for, and wait for them to press a button before you check again.`)
         }
 
+        s.pendingChecks = []
         p.readByAgent = true
         if (p.status === 'rejected') {
           panel(ctx)

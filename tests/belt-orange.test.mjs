@@ -113,7 +113,7 @@ export async function run({ native }) {
     assert(/^Proposal p-1 is on the person's screen: fri-kids/.test(blind.text), 'blind proposal still works: ' + blind.text)
     let poll
     for (let i = 0; i < 4; i++) poll = await callTool(b.page, 'check_proposal', { proposal_id: 'p-1' })
-    assert(/p-1 is still pending\. That is 4 checks in 20 seconds\. Stop polling/.test(poll.text), 'polling gets told to stop: ' + poll.text)
+    assert(/p-1 is still pending\. That is 4 checks with no answer yet\. Stop polling/.test(poll.text), 'polling gets told to stop: ' + poll.text)
 
     // The person's own button, a real trusted click this time.
     await b.page.click('#dock #h-yes')

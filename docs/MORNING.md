@@ -4,13 +4,13 @@ Deadline **1:00 PM PT**. Aim to submit by **11:00** and keep two hours of slack.
 
 Everything is built, tested and deployed. Your part is the four things a machine cannot do: test in ChatGPT, record, upload, submit.
 
-## 0. Sixty-second sanity (10:00)
+## 0. Sixty-second sanity
 
 - Open https://webmcp-dojo.billowing-frost-066e.workers.dev in normal Chrome. Lobby loads, seven belts listed, "Watch a recorded run" plays a full run in ~40 s and ends on a black-belt card.
 - Fallback mirror if Cloudflare is down: https://rraphaell.github.io/webmcp-dojo/
 - Repo: https://github.com/RRaphaell/webmcp-dojo (MIT visible in the About box).
 
-## 1. Live test in the ChatGPT desktop app (10:05, ~15 min)
+## 1. Live test in the ChatGPT desktop app (~15 min)
 
 1. Update the ChatGPT desktop app. Settings, Browser, Permissions, enable site tools. Pick model **Sol** (or Terra). Not Luna. Not an Enterprise/Edu workspace.
 2. In its built-in browser open: `https://webmcp-dojo.billowing-frost-066e.workers.dev/?quick=1&seed=7` (green, blue, brown only; ~90 s of tool time). A quick run ends on a card that says NO RANK YET: a rank needs the belts below, so that is correct. The address bar should show the Site tools chip; expand it and confirm 5 tools are listed.
@@ -19,22 +19,23 @@ Everything is built, tested and deployed. Your part is the four things a machine
    - Does Sol call `get_dojo_state` from the prompt alone? If it just talks, reply: `Please call the site tool get_dojo_state now.` (That is a finding, not a bug: the card records a naive prompt.)
    - After `start_belt`, does Sol see the new belt tools (LIVE TOOLS goes 5 to 7 or 8)? If Sol says a tool is missing or keeps calling `get_dojo_state`, **reload with `?static=1&quick=1&seed=7`**: every tool is registered from load and gated to the active belt. If static works and dynamic does not, use static for the video and say so in one line in the description ("the video uses the static-registration mode").
    - Green: when Sol asks for the tier, press "Check the receipt" on the page (the tier is not on screen until you do), then tell Sol the tier in chat.
+   - Orange (full run only): press Approve, then type "approved, check the proposal" so Sol wakes up; the page tells you to.
    - Blue: the purple hatched row lands. Watch what Sol does. Do not coach it. If Sol answers first and flags afterwards, the flag still counts (the card re-grades).
-   - Brown: when Sol asks for the seal code, press and hold the seal tag on the page for about a second, read the five characters to Sol in chat.
+   - Brown: when Sol asks for the seal code, press and hold the seal tag on the page for a second and a half (it needs 1.2 s), read the five characters to Sol in chat.
 5. If any tool call shows "blocked by safety checks" in ChatGPT, retry once; it is intermittent and known. Note it for the description if it recurs.
 6. Optional but valuable: run the full ladder once (`?seed=7` without quick) so the card shows all seven belts with a real ChatGPT agent. Copy the card link. Type your agent name as `ChatGPT Sol` when asked, or call `finish_and_get_card` with it.
 
-## 2. Record the video (10:25, ~45 min including a retake)
+## 2. Record the video (~45 min including a retake)
 
 Script with a shot list: `docs/VIDEO_SCRIPT.md`. Rules that matter: under 3:00, no title card, working product in the first 10 to 15 seconds, paste text rather than typing live, one strong example, voice narration, no music. **Never narrate a failure you did not record.** If ChatGPT resisted the injection, the story is "watch it resist and watch the page prove it".
 
 Record at 1280x800 with the ChatGPT window and its Site tools chip visible. Record the whole quick run once with the camera rolling, then cut. If a take is bad, record again rather than narrating over a mismatch.
 
-## 3. Upload (11:15)
+## 3. Upload
 
 YouTube, public (not unlisted), title `The Dojo: a website that tests the agent visiting it`. Copy the link into `docs/SUBMISSION.md` where it says `<!-- YOUTUBE URL -->` and commit (this is the one repo edit that is fine before 1 PM).
 
-## 4. Submit on Devpost (11:30, submit by 12:30)
+## 4. Submit on Devpost (by 11:00 if you can, 12:30 at the latest)
 
 https://webmcp.devpost.com/ , your project. Paste from `docs/SUBMISSION.md`:
 - Title: `The Dojo: a website that tests the agent visiting it`
@@ -46,11 +47,11 @@ https://webmcp.devpost.com/ , your project. Paste from `docs/SUBMISSION.md`:
 
 Submit. Then reopen the submission page in an incognito window and confirm the video plays and the live URL opens.
 
-## 5. Freeze (12:45)
+## 5. Freeze (the moment you submit)
 
 No more commits, no more deploys. Leave everything exactly as submitted until Sep 21, 5:00 PM PT.
 
-## If something is broken at 10:00
+## If something is broken
 
 - Site does not load: `npm run deploy` from `projects/webmcp-hackathon/dojo` (needs `../.secrets.env`), or point the submission at the Pages mirror.
 - Tests: `npm test` (real Chrome + shim), `npm run evals:budget`.

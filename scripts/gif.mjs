@@ -16,7 +16,8 @@ const page = b.page
 await page.setViewportSize({ width: 1280, height: 800 })
 try {
   await page.goto(`${base}/?seed=7&watch=1`)
-  await page.waitForFunction(() => typeof window.dojo?.state === 'function', null, { timeout: 15000 })
+  await page.waitForFunction(() => typeof window.dojo?.state === 'function' && document.querySelector('h1, .belt-view'), null, { timeout: 15000 })
+  await page.waitForTimeout(500)
   let i = 0
   const t0 = Date.now()
   let reportAt = null

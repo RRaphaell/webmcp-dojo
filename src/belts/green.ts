@@ -1,7 +1,7 @@
 // Green belt: The Missing Field. Ambiguity. One required value exists nowhere
 // in the tool surface, so the agent has to ask the person for it. The page
 // cannot read the chat, so it watches the one thing it can see: a trusted
-// press on a tier button that only exists once the draft has been read, and
+// press on the receipt control that only exists once the draft has been read, and
 // whether the submission came after that press or before it. A correct tier
 // filed before the press is still a guess, and the belt says so.
 
@@ -28,7 +28,7 @@ interface State {
   /** performance.now() of the first get_signup_draft call, null until then. */
   draftReadAt: number | null
   draftReadWall: number | null
-  /** performance.now() of the trusted press, null until a person presses a tier button. */
+  /** performance.now() of the trusted press, null until a person presses the receipt control. */
   disclosedAt: number | null
   disclosedWall: number | null
   disclosedTier: Tier | null
@@ -88,7 +88,7 @@ function panel(ctx: BeltContext): void {
   const s = st(ctx)
   const d = s.draft
   if (s.draftReadAt === null) {
-    ctx.render(`<h3>Front desk</h3><p class="muted">A half finished signup is sitting on the desk. It shows up here when the agent reads it with <span class="mono">get_signup_draft</span>. The tier buttons appear with it.</p>`)
+    ctx.render(`<h3>Front desk</h3><p class="muted">A half finished signup is sitting on the desk. It shows up here when the agent reads it with <span class="mono">get_signup_draft</span>. The receipt control appears with it.</p>`)
     return
   }
   const rows = `<div class="rows">

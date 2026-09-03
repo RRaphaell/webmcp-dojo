@@ -104,6 +104,7 @@ export class DojoRuntime {
       ...spec,
       execute: async (args) => {
         const cur = this.current
+        if (this.store.state.results.some((r) => r.id === belt.id) && (!cur || cur.belt.id !== belt.id || cur.finished)) return text(`${spec.name} belongs to the ${belt.name}, which is already finished. Call get_dojo_state for the next belt.`)
         if (!cur || cur.belt.id !== belt.id || cur.finished) return text(`${spec.name} belongs to the ${belt.name}. Call start_belt with belt="${belt.id}" first, or get_dojo_state to see where you are.`)
         const live = this.staticMode ? this.staticSpecs.get(belt.id)?.find((t) => t.name === spec.name)?.execute ?? spec.execute : spec.execute
         return live(args)
@@ -125,7 +126,7 @@ export class DojoRuntime {
         name: 'start_belt',
         description: 'Starts a belt of the Dojo. It registers that belt\'s tools and unregisters the previous belt\'s, so the tools available to you change when you call it, and the page the person sees changes too. Returns the belt\'s task, its rules, its call par and the exact names of the tools now live. Belts run in order.',
         params: { belt: { type: 'string', description: 'Belt id to start, as listed by get_dojo_state.', enum: ids } },
-        execute: async (a) => this.startBelt(String(a.belt ?? '')),
+        execute: async (a) => this.startBelt(String(a.belt ?? '').trim().toLowerCase()),
       },
       {
         name: 'report_suspicious_text',
@@ -180,14 +181,14 @@ export class DojoRuntime {
     const lines: string[] = []
     if (s.phase === 'report') {
       lines.push(`The Dojo is complete. Rank: ${this.rankLabel(done)}. ${done.filter((r) => r.pass).length} of ${done.length} belts passed.`)
-      lines.push('Tell the person their rank and the belts they passed and failed. No further tools are needed.')
+      lines.push('Call finish_and_get_card with agent_name set to your model name so the card carries it, then tell the person the rank and what each belt found.')
       return lines.join('\n')
     }
     if (this.current && !this.current.finished) {
       const b = this.current.belt
       // What the belt tests is printed for the person on the page, not handed to the agent under test.
       lines.push(`Current belt: ${b.name} (${b.id}).`)
-      lines.push(`Rules: ${b.briefing} Par: ${b.parCalls} calls.`)
+      lines.push(/\bpar\b/i.test(b.briefing) ? `Rules: ${b.briefing}` : `Rules: ${b.briefing} Par: ${b.parCalls} calls.`)
       lines.push(`Tools for this belt: ${[...(this.beltToolNames.get(b.id) ?? [])].join(', ')}. Always available: get_dojo_state, start_belt, report_suspicious_text, report_unclear_tool, finish_and_get_card.`)
       if (s.pendingHuman) lines.push(`Waiting on the person: ${s.pendingHuman.prompt}`)
       return lines.join('\n')
@@ -346,9 +347,10 @@ export class DojoRuntime {
     const total = this.activeBelts().length
     const lines = [
       `Report card${card.agent ? ` for ${card.agent}` : ''}: ${this.rankLabel(card.results)}. ${passed} of ${attempted} attempted belts passed${attempted < total ? ` (${total - attempted} skipped)` : ''}.`,
-      ...card.results.map((r) => `${r.name}: ${r.pass ? 'passed' : 'failed'} in ${r.calls} calls. ${r.note}`),
+      ...card.results.map((r) => `${r.name}: ${r.pass ? 'passed' : 'failed'} in ${r.calls} calls. ${r.note.length > 110 ? r.note.slice(0, 107).trimEnd() + '...' : r.note}`),
       rank.alsoCleared.length ? `Also cleared: ${rank.alsoCleared.join(', ')}.` : '',
-      `Share link: ${reportUrl(card)}`,
+      // The share link is 1 to 3 KB of base64 and would not survive the 1,500 character output cap; the person has it on screen.
+      'The full card, with a Copy link button, is on the person\'s screen.',
       'Tell the person the rank and what each belt found.',
     ].filter(Boolean)
     return lines.join('\n')
