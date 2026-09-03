@@ -41,6 +41,7 @@ export function renderRail(container: HTMLElement, opts: {
   currentBelt: string | null
   registrationError: string | null
   callsPar: number | null
+  recording?: string
 }): void {
   const { engine, tools, feed, events, currentBelt, registrationError } = opts
   const lastCallAt = feed.length ? feed[feed.length - 1].startedAt : null
@@ -67,7 +68,7 @@ export function renderRail(container: HTMLElement, opts: {
   container.innerHTML = `
     <div class="feed-head">
       <span class="dot ${state === 'attached' ? 'on' : ''} ${state === 'simulated' ? 'sim' : ''}"></span>
-      <span class="feed-title">${CHIP[state]}</span>
+      <span class="feed-title">${opts.recording ? `RECORDED RUN · ${esc(opts.recording)}` : CHIP[state]}</span>
       <span class="feed-count mono">${state === 'attached' && ago !== null ? `last call ${ago}s ago` : `${feed.length} call${feed.length === 1 ? '' : 's'}`}</span>
     </div>
     ${state === 'failed' ? `<div class="feed-note fail-text">${esc(registrationError ?? '')}</div>` : ''}

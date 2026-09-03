@@ -30,7 +30,7 @@ export async function loadRecording(): Promise<Recorded | null> {
 /** Replays the recording. Returns when the run reaches the report card or the steps run out. */
 export async function replay(rt: DojoRuntime, rec: Recorded, speed = 1, onStep?: (i: number, total: number) => void): Promise<void> {
   ;(window as unknown as { __dojoAllowSynthetic?: boolean }).__dojoAllowSynthetic = true
-  rt.store.set({ agentName: `${rec.model} (recorded ${rec.date})` })
+  rt.store.set({ agentName: `${rec.model} (recorded ${rec.date})`, recording: `${rec.model}, ${rec.date}` })
   const total = rec.steps.length
   for (const [i, step] of rec.steps.entries()) {
     onStep?.(i, total)

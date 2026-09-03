@@ -18,6 +18,8 @@ export interface DojoState {
   /** Human actions, check verdicts, toolchange notes and sensei lines, shown in the same stream as calls. */
   events: FeedEvent[]
   registrationError: string | null
+  /** Non-empty while a recorded run is replaying: the rail says so instead of claiming a live agent. */
+  recording: string
   pendingHuman: PendingHuman
   /** Human-visible panel for the current belt (HTML). */
   beltPanel: string
@@ -40,7 +42,7 @@ export class Store {
   constructor(engine: EngineKind) {
     this.state = {
       engine, phase: 'lobby', agentAttached: false, currentBelt: null, beltStartedAt: null,
-      results: [], feed: [], events: [], registrationError: null, pendingHuman: null, beltPanel: '', beltPanelBind: null, status: '', sensei: '', agentName: '', limitTo: null,
+      results: [], feed: [], events: [], registrationError: null, recording: '', pendingHuman: null, beltPanel: '', beltPanelBind: null, status: '', sensei: '', agentName: '', limitTo: null,
     }
   }
 

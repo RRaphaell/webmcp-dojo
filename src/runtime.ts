@@ -354,7 +354,7 @@ export class DojoRuntime {
     this.complaintLog = []
     if (!this.staticMode) this.contexts.clear()
     this.beltStart.clear()
-    this.store.set({ phase: 'lobby', currentBelt: null, results: [], feed: [], events: [], pendingHuman: null, beltPanel: '', beltPanelBind: null, status: '', sensei: '' })
+    this.store.set({ phase: 'lobby', currentBelt: null, results: [], feed: [], events: [], pendingHuman: null, beltPanel: '', beltPanelBind: null, status: '', sensei: '', recording: '' })
     history.replaceState(null, '', location.pathname)
   }
 

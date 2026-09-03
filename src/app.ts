@@ -55,7 +55,7 @@ export async function boot(engine: EngineKind): Promise<void> {
   function rail() {
     const s = rt.store.state
     const limited = s.limitTo ? rt.beltList.filter((b) => s.limitTo!.includes(b.id)) : rt.beltList
-    renderRail(feedEl, { engine, tools: rt.registry.tools, feed: s.feed, events: s.events, currentBelt: s.currentBelt, registrationError: s.registrationError, callsPar: limited.reduce((n, b) => n + b.parCalls, 0) || totalPar })
+    renderRail(feedEl, { engine, tools: rt.registry.tools, feed: s.feed, events: s.events, currentBelt: s.currentBelt, registrationError: s.registrationError, recording: s.recording, callsPar: limited.reduce((n, b) => n + b.parCalls, 0) || totalPar })
   }
   setInterval(rail, 5000)
 
