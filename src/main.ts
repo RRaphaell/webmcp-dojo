@@ -7,6 +7,9 @@ const params = new URLSearchParams(location.search)
 if (params.get('test') === 'registry') {
   const { installTestHooks } = await import('./testhooks')
   installTestHooks(engine)
+} else if (params.get('test') === 'runtime') {
+  const { installRuntimeFixture } = await import('./testhooks')
+  await installRuntimeFixture(engine)
 } else {
   const { boot } = await import('./app')
   boot(engine)

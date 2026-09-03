@@ -152,6 +152,15 @@ async function pageTools(page) {
 }
 
 async function executeOnPage(page, name, input) {
+  // Retry the engine's transient UnknownError (register/abort in the same tick); see tests/harness.mjs.
+  for (let attempt = 0; ; attempt++) {
+    const r = await executeOnPageOnce(page, name, input)
+    if (!(r.error && /unknown transient reason/i.test(r.text)) || attempt >= 3) return r
+    await new Promise((res) => setTimeout(res, 60 * (attempt + 1)))
+  }
+}
+
+async function executeOnPageOnce(page, name, input) {
   return page.evaluate(async ({ name, input }) => {
     const list = await document.modelContext.getTools()
     const tool = list.find((t) => t.name === name)

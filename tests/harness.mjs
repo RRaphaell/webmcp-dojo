@@ -45,16 +45,36 @@ export async function launch({ native = true, headless = true } = {}) {
   return { browser, context, page, consoleErrors, close: () => browser.close() }
 }
 
-/** Agent-style tool listing: what an agent runtime sees. */
+/** Agent-style tool listing: what an agent runtime sees. Waits a beat so deferred unregistrations have landed. */
 export async function listTools(page) {
+  await page.waitForTimeout(40)
   return page.evaluate(async () => {
     const tools = await document.modelContext.getTools()
     return tools.map((t) => ({ name: t.name, description: t.description, inputSchema: typeof t.inputSchema === 'string' ? JSON.parse(t.inputSchema) : t.inputSchema, annotations: t.annotations }))
   })
 }
 
-/** Agent-style call: executeTool(tool, jsonArgs) → parsed result. */
+/**
+ * Agent-style call: executeTool(tool, jsonArgs) → parsed result.
+ * Chrome 152 can throw a transient UnknownError if executeTool runs within the
+ * same tick as a register/abort (toolchange); real agents have seconds between
+ * calls, so we retry briefly like a runtime would.
+ */
 export async function callTool(page, name, args = {}) {
+  let lastErr
+  for (let attempt = 0; attempt < 4; attempt++) {
+    try {
+      return await callToolOnce(page, name, args)
+    } catch (e) {
+      lastErr = e
+      if (!/unknown transient reason/i.test(String(e.message))) throw e
+      await new Promise((r) => setTimeout(r, 60 * (attempt + 1)))
+    }
+  }
+  throw lastErr
+}
+
+async function callToolOnce(page, name, args) {
   return page.evaluate(async ({ name, args }) => {
     const tools = await document.modelContext.getTools()
     const tool = tools.find((t) => t.name === name)

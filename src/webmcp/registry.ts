@@ -101,17 +101,17 @@ export class ToolRegistry {
     this.currentSet = set
     // A name shared with the outgoing set would be rejected as a duplicate; retire the old set first in that case.
     const incoming = new Set(specs.map((s) => s.name))
-    if (this.active.some((t) => incoming.has(t.spec.name))) previous?.abort()
+    if (this.active.some((t) => incoming.has(t.spec.name))) { previous?.abort(); await nextTask() }
     const next = await this.registerSet(set, specs, controller)
-    if (this.controller !== controller) { controller.abort(); return } // superseded while awaiting
-    previous?.abort()
+    if (this.controller !== controller) { deferAbort(controller); return } // superseded while awaiting
+    deferAbort(previous)
     this.active = next
     this.emit({ type: 'set-changed', set, tools: this.tools.slice() })
   }
 
-  /** Unregister the belt set (persistent tools stay). */
+  /** Unregister the belt set (persistent tools stay). Safe to call from inside a tool's execute. */
   clear(): void {
-    this.controller?.abort()
+    deferAbort(this.controller)
     this.controller = null
     this.active = []
     this.currentSet = ''
@@ -167,6 +167,21 @@ export class ToolRegistry {
       return { content: [{ type: 'text', text: message }], isError: true }
     }
   }
+}
+
+/**
+ * Chrome 152 destroys the result of a tool call whose tool is unregistered
+ * synchronously (or in a microtask) during its own execute(), rejecting with a
+ * "transient" UnknownError. Aborting on the next task is safe. Every abort in
+ * this module goes through here so a belt's final tool can end the belt.
+ */
+function deferAbort(controller: AbortController | null | undefined): void {
+  if (!controller) return
+  setTimeout(() => controller.abort(), 0)
+}
+
+function nextTask(): Promise<void> {
+  return new Promise((r) => setTimeout(r, 0))
 }
 
 function clip(s: string, n = 160): string {

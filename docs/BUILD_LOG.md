@@ -29,3 +29,11 @@ Running record of what was done, why, and what is open. Newest at the bottom. Ti
 - Biggest new rule: never `throw` from `execute`. The spec discards the rejection reason (`completionSteps(null,false)`, bare `UnknownError`) so a thrown message never reaches the model. Every guiding error and refusal must be a resolved result.
 - Q4 answered against us: the agent CAN see the page as pixels (spec: observations "often include screenshots"; ChatGPT Browser doc: "inspect rendered state, take screenshots"). A rendered code is NOT human-only. The human-only belt must generate its secret inside a trusted human click so it never exists before the click.
 - X coverage is a gap: TwitterAPI.io returns 402 Payment Required (account out of credits).
+
+## Sep 3, 00:38-00:46 - runtime, UI shell, two real-engine bugs found and fixed
+- `src/runtime.ts`: belt lifecycle, always-on `get_dojo_state` + `start_belt` (never unregistered, so a tool-set change is never a dead end), non-blocking human channel (propose/check; a judge agent flagged that a blocking tool call could hang inside ChatGPT), `window.dojo` human-side hooks for the UI/tests/evals, report card encoded in the URL.
+- `src/app.ts` + `src/ui/*` + `src/styles/app.css`: lobby (copyable prompt, belt list, how-to), belt view with human box, live feed (page-side ms, read/write badges), tool inspector (run by hand), report card with share link. Screenshot `docs/screenshots/00-shell-lobby.png`, no console errors, engine chip reads "WebMCP detected".
+- **Engine finding 1:** `executeTool` right after a register/abort in the same tick can reject with a transient UnknownError. Harnesses retry.
+- **Engine finding 2 (would have broken every belt's last tool in ChatGPT):** a tool that unregisters its own set synchronously during `execute()` gets its result destroyed. Fixed by deferring every abort to the next task (`deferAbort` in the registry). Probes in `../probe/`, notes in `docs/research/chrome-152-probe.md`.
+- `tests/runtime.test.mjs`: full agent-style lifecycle (state → start → guiding errors → pass → next belt → propose/approve/commit → rank → URL card) green on native Chrome and shim.
+- Panel result: all 3 judges picked the product-first design (42/42/41 of 50). Synthesis writing DESIGN.md.

@@ -36,3 +36,16 @@ Without a switch: `typeof document.modelContext === 'undefined'`. `navigator.mod
 - The dev shim must mirror: promise-returning `registerTool`, duplicate-name rejection, string-only `executeTool` args and string return, `inputSchema` serialized as a string in `getTools()`.
 - Return `{ content: [{ type: 'text', text }] }` from every `execute` (the MCP shape ChatGPT documents); the engine passes it through untouched.
 - Each belt's tool set gets one `AbortController`; switching belts aborts the old controller and registers the new set. That is dynamic registration, verified to fire `toolchange` on both register and abort.
+
+## Self-unregistration during execute (found Sep 3, 00:45; probed `../../probe/selfabort_probe.mjs`)
+
+If a tool's own `AbortController` is aborted **synchronously or in a microtask inside its
+`execute()`**, Chrome 152 destroys the call: `executeTool` rejects with `UnknownError: The
+operation failed for an unknown transient reason (e.g. out of memory)` and the result never
+reaches the agent. Aborting in a **later task** (`setTimeout(..., 0)`) is safe: the call resolves
+with its result and the tool is gone afterwards. Aborting a *different* set inside execute is fine
+(`../../probe/switch_probe.mjs`).
+
+Consequence for the Dojo: every unregistration goes through `deferAbort()` in the registry, so a
+belt's final tool (the one that ends the belt and swaps the tool set) can return its verdict.
+The test and eval harnesses still retry that specific transient error once, defensively.
