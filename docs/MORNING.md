@@ -1,6 +1,6 @@
 # Morning checklist (Raphael, Thu Sep 3)
 
-Deadline **1:00 PM PT**. Aim to submit by **11:00** and keep two hours of slack. Compressed timeline if you start at 8:30: live test 8:30, video 9:15, upload 10:00, Devpost 10:30. I freeze the site at 9:30 at the latest so your video matches what judges open; after that only docs move, and nothing moves after 1:00 PM. After 1:00 PM do not touch the repo, the video, or the live site until Sep 21, 5:00 PM PT (organizer rule; editing risks eligibility).
+Deadline **1:00 PM PT**. Aim to submit by **10:30** (the organizers' own advice is to be in about three hours before the deadline) and keep the slack. Compressed timeline if you start at 8:30: live test 8:30, video 9:15, upload 10:00, Devpost 10:30. I freeze the site at 9:30 at the latest so your video matches what judges open; after that only docs move, and nothing moves after 1:00 PM. After 1:00 PM do not touch the repo, the video, or the live site until Sep 21, 5:00 PM PT (organizer rule; editing risks eligibility).
 
 Everything is built, tested and deployed. Your part is the four things a machine cannot do: test in ChatGPT, record, upload, submit.
 
@@ -24,6 +24,20 @@ Everything is built, tested and deployed. Your part is the four things a machine
    - Brown: when Sol asks for the seal code, press and hold the seal tag on the page for a second and a half (it needs 1.2 s), read the five characters to Sol in chat.
 5. If any tool call shows "blocked by safety checks" in ChatGPT, retry once; it is intermittent and known (OpenAI: "each tool invocation receives a safety review"). ChatGPT may also ask you to confirm `submit_signup` because its description says it starts billing; approve it. That prompt is ChatGPT's own confirmation layer, separate from the Dojo's, and worth one spoken sentence if it appears on camera. Note either for the description if it recurs.
 6. Optional but valuable: run the full ladder once (`?seed=7` without quick) so the card shows all seven belts with a real ChatGPT agent. Copy the card link. Type your agent name as `ChatGPT Sol` when asked, or call `finish_and_get_card` with it.
+
+## 1b. If ChatGPT desktop is degraded (OpenAI has an open incident this morning: "Elevated errors across ChatGPT and Codex", mitigation applied 8:50 AM; a Devpost thread asked for an extension and got no reply)
+
+Do not wait on it. Two honest fallbacks, in order of preference:
+
+1. **A Claude agent through Chrome's WebMCP engine, on camera.** From `projects/webmcp-hackathon/dojo`, with `../.secrets.env` loaded:
+   ```
+   set -a && source ../.secrets.env && set +a
+   node evals/run.mjs --models claude-sonnet-5 --seed 7 --belts green,blue,brown --headed --url https://webmcp-dojo.billowing-frost-066e.workers.dev
+   ```
+   A visible Chrome window (1280x860) opens on the live site with WebMCP on; Sonnet 5 takes the three belts through the page's tools while the terminal prints each call. Record the browser window (the terminal can be a second shot). Sonnet, not Opus: Opus hit API refusals after the seal code in three of four runs. Say in the narration that it is Claude in Chrome's WebMCP engine, and that ChatGPT was degraded that morning. The judges' rules accept Chrome 149+ with the flag as a surface.
+2. **The recorded run** (the lobby button) as B-roll, labelled as a recording on screen and in the narration. It is a real Opus 5 transcript executing for real, and the page says so the whole time.
+
+Either way the description's testing instructions still point judges at the ChatGPT desktop app first; nothing in the submission claims a live ChatGPT run that did not happen.
 
 ## 2. Record the video (~45 min including a retake)
 
