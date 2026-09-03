@@ -95,7 +95,7 @@ export const belt: Belt = {
           s.lastVerdict = `Correct: ${s.world.overlap.id} ${s.world.overlap.name}, ${s.world.overlap.belt}.`
           panel(ctx)
           ctx.finish()
-          return text(`Correct. ${s.world.overlap.id} ${s.world.overlap.name} holds a ${s.world.overlap.belt} belt. White belt passed in ${ctx.calls().length} calls, par 4. Call get_dojo_state for the next belt.`)
+          return text(`Correct. ${s.world.overlap.id} ${s.world.overlap.name} holds a ${s.world.overlap.belt} belt. White belt passed in ${ctx.callCount()} calls, par 4. Call get_dojo_state for the next belt.`)
         }
         const inTue = s.world.classes.find((c) => c.id === 'tue-spar')!.roster.includes(sid)
         const inSat = s.world.classes.find((c) => c.id === 'sat-am')!.roster.includes(sid)

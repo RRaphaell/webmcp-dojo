@@ -47,8 +47,10 @@ export interface BeltResult {
 
 /** Everything a belt may touch. Created fresh per run. */
 export interface BeltContext {
-  /** Calls made so far in this belt (the feed, filtered). */
+  /** Calls made so far in this belt (the feed, filtered). Inside a tool's execute, the call in progress is NOT yet included. */
   calls: () => ToolCallRecord[]
+  /** Number of belt calls including the one in progress (use this in verdict text: "passed in N calls"). */
+  callCount: () => number
   /**
    * Ask the human for something the agent cannot get through tools. NON-BLOCKING:
    * returns immediately; the tool that asked should tell the agent to check back

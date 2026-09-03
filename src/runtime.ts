@@ -180,6 +180,7 @@ export class DojoRuntime {
     const self = this
     const ctx: BeltContext = {
       calls: () => this.store.state.feed.slice(startCallIndex).filter((c) => c.set === belt.id),
+      callCount: () => this.store.state.feed.slice(startCallIndex).filter((c) => c.set === belt.id).length + (this.registry.inFlight > 0 ? 1 : 0),
       askHuman: (req) => this.askHuman(req),
       pending: () => this.store.state.pendingHuman,
       humanAnswer: () => this.humanAnswerValue,
@@ -244,8 +245,8 @@ export class DojoRuntime {
     this.registry.clear()
     const card = this.card()
     this.store.set({ phase: 'report', currentBelt: null })
-    const passed = card.results.filter((r) => r.pass).length
-    this.sensei(passed === card.results.length && passed > 0 ? 'done-black' : passed === 0 ? 'done-low' : 'done-mid')
+    const rank = rankFor(card.results).rank
+    this.sensei(rank === 'black' ? 'done-black' : rank === 'unranked' ? 'done-low' : 'done-mid')
     history.replaceState(null, '', reportUrl(card))
   }
 
