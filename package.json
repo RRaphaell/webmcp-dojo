@@ -20,12 +20,10 @@
     "evals:suite": "node evals/run.mjs --suite evals/dojo.evals.json"
   },
   "devDependencies": {
+    "@anthropic-ai/sdk": "^0.123.0",
     "playwright": "^1.62.1",
     "typescript": "^5.6.0",
     "vite": "^6.0.0",
     "wrangler": "^4.128.0"
-  },
-  "dependencies": {
-    "@anthropic-ai/sdk": "^0.123.0"
   }
 }

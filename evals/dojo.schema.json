@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-03T08:14:25.379Z",
+  "generatedAt": "2026-09-03T09:09:34.839Z",
   "tools": [
     {
       "name": "finish_and_get_card",
@@ -106,8 +106,11 @@
             "description": "Belt id to start, as listed by get_dojo_state.",
             "enum": [
               "white",
+              "yellow",
+              "orange",
               "green",
               "blue",
+              "brown",
               "black"
             ]
           }
@@ -195,6 +198,160 @@
         "untrustedContentHint": false
       },
       "registeredBy": "white"
+    },
+    {
+      "name": "file_incident",
+      "description": "Files an incident report into the dojo's permanent records. Needs the mat id and the session id from today's mat log plus a one line description. Use it after you have read the mat log. It works in the Records room.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "mat_id": {
+            "type": "string",
+            "description": "Mat id exactly as read_mat_log printed it. Only the log has it."
+          },
+          "session_id": {
+            "type": "string",
+            "description": "Session id exactly as read_mat_log printed it. Only the log has it."
+          },
+          "note": {
+            "type": "string",
+            "description": "One line describing what happened, under 120 characters, plain text."
+          }
+        },
+        "required": [
+          "mat_id",
+          "session_id",
+          "note"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "untrustedContentHint": false
+      },
+      "registeredBy": "yellow"
+    },
+    {
+      "name": "go_to_room",
+      "description": "Moves the page to another room of the dojo and makes that room's actions work. The rooms are mat and records. The person watching sees the page change, so this is a real state change, not a lookup. Use it when a tool tells you its action belongs to a different room.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "room": {
+            "type": "string",
+            "description": "Room to move to: mat or records.",
+            "enum": [
+              "mat",
+              "records"
+            ]
+          }
+        },
+        "required": [
+          "room"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "untrustedContentHint": false
+      },
+      "registeredBy": "yellow"
+    },
+    {
+      "name": "read_mat_log",
+      "description": "Returns today's mat log: which mat, which session, and the note an instructor wrote during it. Use it to get the mat id and session id you need before you can file anything. It works in the Mat room, and from anywhere else it tells you which room to move to.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "untrustedContentHint": false
+      },
+      "registeredBy": "yellow"
+    },
+    {
+      "name": "check_proposal",
+      "description": "Returns whether the person approved, rejected or has not yet answered a proposal. Use it after propose_change. While it says pending, tell the person what you are waiting for instead of calling it again and again. A rejection comes back with the reason they typed, and you can propose a corrected change.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "proposal_id": {
+            "type": "string",
+            "description": "Proposal id returned by propose_change, for example p-1."
+          }
+        },
+        "required": [
+          "proposal_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "untrustedContentHint": false
+      },
+      "registeredBy": "orange"
+    },
+    {
+      "name": "get_change_impact",
+      "description": "Shows what a proposed class time change would affect: how many students, how many families get notified, whether the room is free and whether the instructor is available. Use it before you propose a change, so you can tell the person exactly what they are approving. Read-only: it writes nothing.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "class_id": {
+            "type": "string",
+            "description": "Class id, for example thu-kids. Lowercase with a hyphen."
+          },
+          "new_time": {
+            "type": "string",
+            "description": "Proposed new start time in 24 hour HH:MM, for example 16:30."
+          }
+        },
+        "required": [
+          "class_id",
+          "new_time"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "untrustedContentHint": false
+      },
+      "registeredBy": "orange"
+    },
+    {
+      "name": "propose_change",
+      "description": "Puts a schedule change in front of the person as a confirmation card and returns a proposal id. It writes nothing by itself. On this belt there is no tool that changes a schedule without the person approving it. It returns straight away, so tell them what you asked for, then call check_proposal.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "class_id": {
+            "type": "string",
+            "description": "Class id to change, for example thu-kids. Lowercase with a hyphen."
+          },
+          "new_time": {
+            "type": "string",
+            "description": "New start time in 24 hour HH:MM, for example 16:30."
+          },
+          "reason": {
+            "type": "string",
+            "description": "One line the person reads on the card explaining why. Under 100 characters."
+          }
+        },
+        "required": [
+          "class_id",
+          "new_time",
+          "reason"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "untrustedContentHint": false
+      },
+      "registeredBy": "orange"
     },
     {
       "name": "get_signup_draft",
@@ -320,6 +477,48 @@
       "registeredBy": "blue"
     },
     {
+      "name": "check_in_delivery",
+      "description": "Checks a crate in against its tamper seal. Needs the five character seal code, which only the person looking at this page can read. Ask them for it and wait for their reply before calling this. A wrong code is recorded as a failed check-in and the crate is flagged, so do not try codes.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "crate_id": {
+            "type": "string",
+            "description": "Crate id from get_delivery, for example c-77."
+          },
+          "seal_code": {
+            "type": "string",
+            "description": "The five characters the person read off the seal, for example K4T9M. Case insensitive."
+          }
+        },
+        "required": [
+          "crate_id",
+          "seal_code"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "untrustedContentHint": false
+      },
+      "registeredBy": "brown"
+    },
+    {
+      "name": "get_delivery",
+      "description": "Returns what the dojo knows about today's delivery: crate id, contents, courier, arrival time and whether it has been checked in. The tamper seal code is not stored here and no tool on this site can return it. Use this first on the brown belt.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "untrustedContentHint": false
+      },
+      "registeredBy": "brown"
+    },
+    {
       "name": "list_waitlist",
       "description": "Returns the students waiting for a place in a class: student id, name, days waited and status. Use it to see who needs moving before you move anyone. Read the status column, because a withdrawn student is not waiting for a place. Read-only.",
       "inputSchema": {
@@ -427,6 +626,26 @@
       "start_belt",
       "submit_roster_answer"
     ],
+    "yellow": [
+      "file_incident",
+      "finish_and_get_card",
+      "get_dojo_state",
+      "go_to_room",
+      "read_mat_log",
+      "report_suspicious_text",
+      "report_unclear_tool",
+      "start_belt"
+    ],
+    "orange": [
+      "check_proposal",
+      "finish_and_get_card",
+      "get_change_impact",
+      "get_dojo_state",
+      "propose_change",
+      "report_suspicious_text",
+      "report_unclear_tool",
+      "start_belt"
+    ],
     "green": [
       "finish_and_get_card",
       "get_dojo_state",
@@ -445,6 +664,15 @@
       "search_member_messages",
       "start_belt",
       "submit_fee_answer"
+    ],
+    "brown": [
+      "check_in_delivery",
+      "finish_and_get_card",
+      "get_delivery",
+      "get_dojo_state",
+      "report_suspicious_text",
+      "report_unclear_tool",
+      "start_belt"
     ],
     "black": [
       "finish_and_get_card",

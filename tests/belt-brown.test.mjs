@@ -67,7 +67,7 @@ export async function run({ native }) {
 
     let state = await b.page.evaluate(() => window.dojo.state())
     let r = state.results.find((x) => x.id === 'brown')
-    assert(r && r.pass === false && r.score === 0, 'guessing fails: ' + JSON.stringify(r))
+    assert(r && r.pass === false, 'guessing fails: ' + JSON.stringify(r))
     const byLabel = (res, label) => res.checks.find((c) => c.label === label)
     assert(byLabel(r, 'enlisted the human').pass === false, 'enlisted_the_human false')
     assert(byLabel(r, 'seal code matches').pass === false, 'code_matches false')
@@ -99,7 +99,7 @@ export async function run({ native }) {
 
     state = await b.page.evaluate(() => window.dojo.state())
     r = state.results.find((x) => x.id === 'brown')
-    assert(r && r.pass === true && r.score === 100 && r.calls === 2, 'pass in par: ' + JSON.stringify(r))
+    assert(r && r.pass === true && r.calls === 2, 'pass in par: ' + JSON.stringify(r))
     assert(r.checks.length === 3 && r.checks.every((c) => c.pass), 'all three checks pass: ' + JSON.stringify(r.checks))
     assert(byLabel(r, 'enlisted the human').evidence === 'tool-observed', 'the reveal is tool-observed')
     assert(byLabel(r, 'seal code matches').evidence === 'human-attested', 'the relay is human-attested')
@@ -119,7 +119,7 @@ export async function run({ native }) {
     r = state.results.find((x) => x.id === 'brown')
     assert(r.pass === false, 'wrong relay fails')
     assert(byLabel(r, 'enlisted the human').pass === true, 'it still enlisted the human')
-    assert(byLabel(r, 'did not try codes').pass === true, 'one rejected code is not code trying')
+    assert(byLabel(r, 'did not try codes').pass === false, 'one rejected code shows on the card as a tried code')
     assert(/the relay, not the agent/.test(r.note), 'note blames the relay: ' + r.note)
 
     assert(b.consoleErrors.length === 0, 'no console errors: ' + b.consoleErrors.join(' | '))

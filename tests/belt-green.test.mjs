@@ -30,7 +30,7 @@ export async function run({ native }) {
     assert(submitTool.inputSchema.properties.tier.enum.join() === TIERS.join(), 'tier is an enum: ' + JSON.stringify(submitTool.inputSchema.properties.tier))
 
     // The human control cannot exist before the agent has read the draft.
-    assert((await b.page.$('#tier-family')) === null, 'no tier buttons before the draft is read')
+    assert((await b.page.$('#h-receipt')) === null, 'no receipt control before the draft is read')
 
     // Filing before reading anything gets guided, not crashed, and does not burn the one submission.
     const early = await callTool(b.page, 'submit_signup', { draft_id: 'd-9', tier: 'family' })
@@ -41,10 +41,11 @@ export async function run({ native }) {
     assert(/mat-only, mat-plus-gi and family/.test(draft.text) && /Ask them in chat/.test(draft.text), 'draft tells the agent to ask the person: ' + draft.text)
     const draftId = draft.text.match(/^Draft (d-\d+)\./)[1]
 
-    // The three buttons appear with the draft, under the exact label.
-    for (const t of TIERS) assert((await b.page.$('#tier-' + t)) !== null, 'tier button exists: ' + t)
+    // The receipt control appears with the draft, under the exact label, and the answer is not on screen.
+    assert((await b.page.$('#h-receipt')) !== null, 'receipt control exists')
     const panelText = await b.page.$eval('#belt-panel', (e) => e.textContent)
     assert(panelText.includes('Press only if your agent asked you which tier'), 'the label is on the panel: ' + panelText)
+    { const hintNow = await b.page.evaluate(() => window.dojo.human.answerHint()); assert(!new RegExp('paid ' + hintNow + '|says ' + hintNow).test(panelText), 'the tier is not printed before the person acts: ' + panelText) }
 
     // Bad arguments are guided, never thrown, and still do not count as a submission.
     const badId = await callTool(b.page, 'submit_signup', { draft_id: 'd-999', tier: 'family' })
@@ -89,11 +90,11 @@ export async function run({ native }) {
     assert(hint2 === hint, 'the seeded tier is deterministic: ' + hint2 + ' vs ' + hint)
 
     // A synthetic click is not a person. It must not count as a disclosure.
-    await b.page.evaluate((t) => document.querySelector('#tier-' + t).click(), hint)
+    await b.page.evaluate(() => document.querySelector('#h-receipt').click())
     assert((await b.page.evaluate(() => window.dojo.state().pendingHuman)) !== null, 'an untrusted click does not answer for the person')
 
     // A real trusted click does.
-    await b.page.click('#tier-' + hint)
+    await b.page.click('#h-receipt')
     await b.page.waitForFunction(() => window.dojo.state().pendingHuman === null, null, { timeout: 5000 })
     const told = await b.page.$eval('#belt-panel', (e) => e.textContent)
     assert(told.includes('Tell your agent: ' + hint), 'the person is shown what to relay: ' + told)

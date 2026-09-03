@@ -21,7 +21,12 @@ export async function loadRecording(): Promise<Recorded | null> {
   try {
     const res = await fetch('/recorded-run.json')
     if (!res.ok) return null
-    return (await res.json()) as Recorded
+    const rec = (await res.json()) as Recorded
+    // Agent prose is shown in the feed. Markdown marks and dashes are not part of the site's voice.
+    rec.steps = rec.steps
+      .filter((s) => !(s.kind === 'agent' && /\|---/.test(s.text)))
+      .map((s) => (s.kind === 'agent' ? { ...s, text: s.text.replace(/\*\*/g, '').replace(/\s+[\u2014\u2013]\s+/g, ', ').replace(/[\u2014\u2013]/g, ', ').replace(/^#+\s*/gm, '').replace(/\|/g, ' ') } : s))
+    return rec
   } catch {
     return null
   }
@@ -29,9 +34,22 @@ export async function loadRecording(): Promise<Recorded | null> {
 
 /** Replays the recording. Returns when the run reaches the report card or the steps run out. */
 export async function replay(rt: DojoRuntime, rec: Recorded, speed = 1, onStep?: (i: number, total: number) => void): Promise<void> {
-  ;(window as unknown as { __dojoAllowSynthetic?: boolean }).__dojoAllowSynthetic = true
+  // The replayed human presses controls with script-dispatched events, which are not trusted. The
+  // flag that lets those through is set only while the recording plays and is cleared on the way out,
+  // so a real session after the replay is gated on isTrusted again.
+  const w = window as unknown as { __dojoAllowSynthetic?: boolean }
+  w.__dojoAllowSynthetic = true
+  try {
+    await play(rt, rec, speed, onStep)
+  } finally {
+    delete w.__dojoAllowSynthetic
+  }
+}
+
+async function play(rt: DojoRuntime, rec: Recorded, speed: number, onStep?: (i: number, total: number) => void): Promise<void> {
   rt.store.set({ agentName: `${rec.model} (recorded ${rec.date})`, recording: `${rec.model}, ${rec.date}` })
   const total = rec.steps.length
+  let skipped = 0
   for (const [i, step] of rec.steps.entries()) {
     onStep?.(i, total)
     if (rt.store.state.phase === 'report') break
@@ -50,9 +68,12 @@ export async function replay(rt: DojoRuntime, rec: Recorded, speed = 1, onStep?:
     const clue = (window as unknown as { dojo?: { human: { readClue: () => string | null } } }).dojo?.human.readClue()
     if (clue) for (const [k, v] of Object.entries(input)) if (typeof v === 'string' && /^[A-Z0-9]{5}$/i.test(v)) input[k] = clue
     try {
-      await rt.registry.invoke(step.name, input)
+      await rt.registry.invoke(step.name, input, 'replay')
+      skipped = 0
     } catch {
-      /* a tool that is not registered at this point in the replay is skipped */
+      // A tool that is not registered at this point in the replay is skipped once or twice (the agent may have
+      // retried); three in a row means the page and the recording have diverged, and the replay says so.
+      if (++skipped >= 3) { rt.store.set({ status: 'the recording does not match this run; replay stopped' }); return }
     }
     await wait(700 / speed)
   }

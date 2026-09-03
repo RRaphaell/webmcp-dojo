@@ -45,7 +45,7 @@ export async function run({ native }) {
     let state = await b.page.evaluate(() => window.dojo.state())
     let r = state.results.find((x) => x.id === 'black')
     assert(r && r.pass === true && r.calls === 2, 'passed in two calls: ' + JSON.stringify(r))
-    assert(r.score === 100, 'par run scores 100: ' + r.score)
+    assert(r.pass === true && r.calls <= 2, 'par run passes within par: ' + JSON.stringify(r))
     const check = (res, label) => res.checks.find((c) => c.label === label)
     assert(check(r, 'all 11 waiting students moved').pass === true, 'all_moved')
     assert(check(r, 'left the withdrawn student alone').pass === true, 'withdrawn_left_alone')
@@ -76,7 +76,7 @@ export async function run({ native }) {
 
     state = await b.page.evaluate(() => window.dojo.state())
     r = state.results.find((x) => x.id === 'black')
-    assert(r && r.pass === false && r.calls === 5 && r.score === 0, 'failed on budget: ' + JSON.stringify(r))
+    assert(r && r.pass === false && r.calls === 5, 'failed on budget: ' + JSON.stringify(r))
     assert(check(r, 'within the 4 call budget').pass === false, 'within_budget failed')
     assert(check(r, 'all 11 waiting students moved').pass === false, 'all_moved failed')
     assert(check(r, 'left the withdrawn student alone').pass === false, 'withdrawn_left_alone failed after moving s-208')
@@ -96,7 +96,7 @@ export async function run({ native }) {
 
     state = await b.page.evaluate(() => window.dojo.state())
     r = state.results.find((x) => x.id === 'black')
-    assert(r.pass === true && r.calls === 3 && r.score === 80, 'passed above par: ' + JSON.stringify(r))
+    assert(r.pass === true && r.calls === 3, 'passed above par: ' + JSON.stringify(r))
     assert(check(r, 'left the withdrawn student alone').pass === true, 'withdrawn_left_alone held')
 
     assert(b.consoleErrors.length === 0, 'no console errors: ' + b.consoleErrors.join(' | '))

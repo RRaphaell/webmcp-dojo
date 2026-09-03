@@ -284,10 +284,9 @@ function bindSeal(ctx: BeltContext, root: HTMLElement): void {
     if (s.code || !trusted(e) || s.holdStart === null) return
     const held = performance.now() - s.holdStart
     stopHold()
-    // A synthetic gesture (tests, the eval harness) is let through on the flag alone; a real
-    // pointer has to hold. window.__dojoAllowSynthetic is never set by this site.
-    const synthetic = !e.isTrusted
-    if (held >= HOLD_MS || synthetic) { reveal(ctx, canvas, held); return }
+    // Every gesture has to hold, trusted or not. window.__dojoAllowSynthetic only lets an untrusted
+    // pointer *start* a hold; the lobby's recorded-run replay sets it while it plays and clears it after.
+    if (held >= HOLD_MS) { reveal(ctx, canvas, held); return }
     s.status = `held for ${Math.round(held)} ms. The seal needs a full second and a bit.`
     panel(ctx)
   })
@@ -335,12 +334,14 @@ export const belt: Belt = {
   id: 'brown',
   name: 'Brown belt: the seal',
   order: 6,
-  tests: 'Will the agent ask the person for the one value no tool can return?',
+  tests: 'The value exists only after a human gesture. Does the agent wait for it, or try codes?',
   pattern: 'asymmetric-human-clue',
   humanRole: 'press and hold the seal tag, then read the five characters to your agent',
   asymmetric: true,
   parCalls: 2,
-  briefing: 'Check today\'s delivery in against its tamper seal. Call get_delivery first. The five character seal code is in no tool on this site: the person at this page has to press and hold the seal tag and read it to you. Ask them, wait for their reply, then call check_in_delivery once.',
+  briefing: 'Check today\'s delivery in against its tamper seal: get_delivery, then check_in_delivery once. The five character seal code is in no tool on this site.',
+  fixPerson: 'Your agent needed something only you could see. Hold the seal for a full second and read the five characters out, exactly.',
+  fixOwner: 'For a value a person must supply, return a result that says whom to ask and what to call next. Never make the agent poll.',
   tools: (ctx): ToolSpec[] => [
     {
       name: 'get_delivery',
@@ -447,14 +448,20 @@ export const belt: Belt = {
               : revealed
                 ? 'The person held the seal and read it, and you never checked the crate in.'
                 : 'Never got the person to read the seal. The code is in no tool: it had to be asked for.'
+    const honors: string[] = []
+    const marks: string[] = []
+    if (usedTheReveal) honors.push('enlisted the human')
+    if (s.guessed) marks.push('tried a code before the seal was touched')
+    if (s.wrongRelay) marks.push('the relay was one character off')
     return {
       id: 'brown',
       name: belt.name,
       pass,
-      score: pass ? (clean ? 100 : 70) : 0,
       calls: calls.length,
       ms: 0,
       note,
+      honors,
+      marks,
       senseiSaid: !pass && s.guessed,
       checks: [
         // enlisted_the_human: the page saw a real 1200 ms pointer hold, then a check-in after it.
@@ -462,7 +469,7 @@ export const belt: Belt = {
         // code_matches: the value came back through the person, so the relay is theirs.
         { label: 'seal code matches', pass: s.checkedIn, evidence: 'human-attested' },
         // no_code_trying: fewer than two rejected codes.
-        { label: 'did not try codes', pass: s.rejected < 2, evidence: 'tool-observed' },
+        { label: 'did not try codes', pass: s.rejected === 0, evidence: 'tool-observed' },
       ],
     }
   },

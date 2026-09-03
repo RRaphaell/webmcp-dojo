@@ -21,6 +21,8 @@ export interface ToolCallRecord {
   readOnly: boolean
   /** The tool declared untrustedContentHint: its output is third-party text, shown hatched in the feed. */
   untrusted: boolean
+  /** Unset for calls that came through the engine. 'hand' for the inspector, 'replay' for the recorded run. */
+  via?: 'hand' | 'replay'
 }
 
 export interface ParamSpec {
@@ -83,6 +85,7 @@ export class ToolRegistry {
   /** Escape hatch (?compat=1): never unregister previous belt sets, in case an agent runtime does not re-read tools mid-conversation. */
   keepPrevious = false
   private retired: ActiveTool[] = []
+  private retiredControllers: AbortController[] = []
 
   /** Belt tools plus the always-on tools, in registration order (plus retired sets in compat mode). */
   get tools(): readonly ActiveTool[] { return [...this.persistent, ...this.retired, ...this.active] }
@@ -119,7 +122,7 @@ export class ToolRegistry {
     if (this.active.some((t) => incoming.has(t.spec.name))) { previous?.abort(); await nextTask() }
     const next = await this.registerSet(set, specs, controller)
     if (this.controller !== controller) { deferAbort(controller); return } // superseded while awaiting
-    if (this.keepPrevious) this.retired = [...this.retired, ...this.active]
+    if (this.keepPrevious) { this.retired = [...this.retired, ...this.active]; if (previous) this.retiredControllers.push(previous) }
     else deferAbort(previous)
     this.active = next
     this.emit({ type: 'set-changed', set, tools: this.tools.slice() })
@@ -127,7 +130,19 @@ export class ToolRegistry {
 
   /** Unregister the belt set (persistent tools stay). Safe to call from inside a tool's execute. */
   clear(): void {
-    if (this.keepPrevious) { this.retired = [...this.retired, ...this.active] } else deferAbort(this.controller)
+    if (this.keepPrevious) { this.retired = [...this.retired, ...this.active]; if (this.controller) this.retiredControllers.push(this.controller) } else deferAbort(this.controller)
+    this.controller = null
+    this.active = []
+    this.currentSet = ''
+    this.emit({ type: 'set-changed', set: '', tools: this.tools.slice() })
+  }
+
+  /** A new run: every belt set goes, retired ones included, so the same names can register again. Persistent tools stay. */
+  resetAll(): void {
+    for (const c of this.retiredControllers) deferAbort(c)
+    this.retiredControllers = []
+    this.retired = []
+    deferAbort(this.controller)
     this.controller = null
     this.active = []
     this.currentSet = ''
@@ -149,20 +164,27 @@ export class ToolRegistry {
         annotations: { readOnlyHint: !!spec.annotations?.readOnlyHint, untrustedContentHint: !!spec.annotations?.untrustedContentHint },
         execute: (args) => this.run(set, spec, args ?? {}),
       }
-      await mc.registerTool(descriptor, { signal: controller.signal })
+      try {
+        await mc.registerTool(descriptor, { signal: controller.signal })
+      } catch (err) {
+        // An already-aborted signal means this set was superseded while registering: the engine did not keep it, so neither do we.
+        if (err instanceof DOMException && err.name === 'AbortError') continue
+        throw err
+      }
       out.push({ spec, set, descriptor })
     }
     return out
   }
 
   /** Execute an active tool by name through the same wrapper an engine would hit (used by the inspector). */
-  async invoke(name: string, args: Record<string, unknown>): Promise<ToolResult> {
+  async invoke(name: string, args: Record<string, unknown>, via: 'hand' | 'replay' = 'hand'): Promise<ToolResult> {
     const t = this.tools.find((a) => a.spec.name === name)
     if (!t) throw new Error(`no active tool named ${name}`)
-    return this.run(t.set, t.spec, args)
+    return this.run(t.set, t.spec, args, via)
   }
 
-  private async run(set: string, spec: ToolSpec, args: Record<string, unknown>): Promise<ToolResult> {
+  /** `via` is set for calls that did not come through the engine: a person in the inspector, or the recorded-run replay. */
+  private async run(set: string, spec: ToolSpec, args: Record<string, unknown>, via?: 'hand' | 'replay'): Promise<ToolResult> {
     const id = ++this.seq
     const startedAt = performance.now()
     const readOnly = !!spec.annotations?.readOnlyHint
@@ -176,13 +198,13 @@ export class ToolRegistry {
       }
       const ms = performance.now() - startedAt
       this.inFlight--
-      this.emit({ type: 'call', record: { id, set, tool: spec.name, args, startedAt, ms, ok: !result.isError, summary: clip(result.content?.[0]?.text ?? ''), result, readOnly, untrusted } })
+      this.emit({ type: 'call', record: { id, set, tool: spec.name, args, startedAt, ms, ok: !result.isError, summary: clip(result.content?.[0]?.text ?? ''), result, readOnly, untrusted, via } })
       return result
     } catch (err) {
       const ms = performance.now() - startedAt
       const message = err instanceof Error ? err.message : String(err)
       this.inFlight--
-      this.emit({ type: 'call', record: { id, set, tool: spec.name, args, startedAt, ms, ok: false, summary: clip(message), error: message, readOnly, untrusted } })
+      this.emit({ type: 'call', record: { id, set, tool: spec.name, args, startedAt, ms, ok: false, summary: clip(message), error: message, readOnly, untrusted, via } })
       // Guiding errors: never throw at the engine; return a message the agent can act on.
       return { content: [{ type: 'text', text: message }], isError: true }
     }

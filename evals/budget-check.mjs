@@ -10,7 +10,7 @@
 import { serveDist, launch, listTools, callTool } from '../tests/harness.mjs'
 
 const url = process.argv.includes('--url') ? process.argv[process.argv.indexOf('--url') + 1] : null
-const LIMITS = { name: 30, description: 500, paramDescription: 150 }
+const LIMITS = { name: 30, description: 500, paramDescription: 150, output: 1500 }
 const srv = url ? null : await serveDist()
 const b = await launch({ native: true })
 const rows = []
@@ -36,13 +36,18 @@ try {
     if (problems.length) violations++
     rows.push({ set, tool: t.name, nameLen: t.name.length, descLen: (t.description ?? '').length, params: params.length, maxParamDesc: Math.max(0, ...params.map(([, v]) => (v.description ?? '').length)), readOnly: !!t.annotations?.readOnlyHint, untrusted: !!t.annotations?.untrustedContentHint, problems: problems.join('; ') || 'ok' })
   }
+  let outputs = 0, longest = 0
+  const measure = (name, r) => { outputs++; longest = Math.max(longest, r.text.length); if (r.text.length > LIMITS.output) { violations++; rows.push({ set: 'output', tool: name, nameLen: 0, descLen: 0, params: 0, maxParamDesc: 0, readOnly: false, untrusted: false, problems: `output ${r.text.length}>${LIMITS.output}` }) } }
   for (const t of await listTools(b.page)) record('always on', t)
+  measure('get_dojo_state', await callTool(b.page, 'get_dojo_state', {}))
   for (const belt of belts) {
     await b.page.evaluate((id) => window.dojo.human.limitBelts([id]), belt.id)
     await b.page.evaluate(() => window.dojo.human.reset())
-    await callTool(b.page, 'start_belt', { belt: belt.id })
+    measure('start_belt', await callTool(b.page, 'start_belt', { belt: belt.id }))
+    measure('get_dojo_state', await callTool(b.page, 'get_dojo_state', {}))
     for (const t of await listTools(b.page)) record(belt.id, t)
   }
+  console.error(`${outputs} tool outputs measured, longest ${longest}/${LIMITS.output} chars`)
 } finally {
   await b.close()
   await srv?.close()

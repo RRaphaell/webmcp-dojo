@@ -33,7 +33,6 @@ export async function boot(engine: EngineKind): Promise<void> {
         </aside>
       </div>
       <footer class="foot">
-        <span class="weave">– | – | –</span>
         <span>Built for the OpenAI WebMCP Challenge by <a href="https://x.com/RaphaelKalan">Raphael Kalandadze</a>.</span>
         <span><a href="https://github.com/RRaphaell/webmcp-dojo">Source</a></span>
       </footer>
@@ -47,6 +46,7 @@ export async function boot(engine: EngineKind): Promise<void> {
   root.querySelector('#home')?.addEventListener('click', (e) => { e.preventDefault(); history.replaceState(null, '', location.pathname + location.search); rt.reset() })
 
   const shared = readReportFromUrl(beltNames)
+  damagedLink = !shared && /#card=/.test(location.hash)
   await rt.boot()
   rt.registry.on(() => { renderInspector(inspectorEl, rt.registry); rail() })
   renderInspector(inspectorEl, rt.registry)
@@ -58,6 +58,14 @@ export async function boot(engine: EngineKind): Promise<void> {
     renderRail(feedEl, { engine, tools: rt.registry.tools, feed: s.feed, events: s.events, currentBelt: s.currentBelt, registrationError: s.registrationError, recording: s.recording, callsPar: limited.reduce((n, b) => n + b.parCalls, 0) || totalPar })
   }
   setInterval(rail, 5000)
+
+  if (new URLSearchParams(location.search).get('watch') === '1') {
+    const rec = await loadRecording()
+    if (rec && rec.seed === rt.seed) {
+      rt.store.set({ status: `recorded run: ${rec.model}, ${rec.date}` })
+      void replay(rt, rec, 1)
+    }
+  }
 
   let lastPhase = ''
   let showShared = !!shared
@@ -94,9 +102,15 @@ function renderLobby(stage: HTMLElement, rt: DojoRuntime, results: BeltResult[],
   let coached = false
   const draw = () => {
     stage.innerHTML = `
+      ${damagedLink ? '<div class="notice mono">This report card link is damaged: the fragment after #card= could not be decoded. Nothing on this page is from that card.</div>' : ''}
       <div class="eyebrow">for people and their agents</div>
       <h1>Find out what your agent is <span class="em">actually</span> good at.</h1>
-      <p class="lead">Every other WebMCP demo has the agent working for the site. Here the site is the examiner. Open this page in an agent-enabled browser, paste one line, and your agent works through seven belts using only this page's tools. You watch every call. Some belts cannot be passed without you.</p>
+      <p class="lead">In most WebMCP demos the agent works for the site. Here the site is the examiner. Open this page in an agent-enabled browser, paste one line, and your agent works through seven belts using only this page's tools. You watch every call. Some belts cannot be passed without you.</p>
+      ${rt.engine === 'shim' ? `<div class="prompt-box shim-box">
+        <div class="label"><span>No agent browser detected</span></div>
+        <div class="actions" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px"><button class="btn small" id="by-hand">Take the belts by hand</button><button class="btn ghost small" id="watch-top">Watch a recorded run</button></div>
+        <div class="muted" style="font-size:12.5px;margin-top:8px">This page registers its tools with document.modelContext, which this browser does not have. The tools panel on the right runs every tool by hand, and the card says so. In the ChatGPT desktop app, or Chrome 149+ with WebMCP on, the line below is all you need.</div>
+      </div>` : ''}
       <div class="prompt-box">
         <div class="label"><span>Say this to your agent</span><span class="toggle"><button class="btn small ghost ${coached ? '' : 'on'}" id="p-naive">naive</button><button class="btn small ghost ${coached ? 'on' : ''}" id="p-coached">coached</button><button class="btn small" id="copy-prompt">Copy</button></span></div>
         <div class="text" id="prompt-text">${esc(coached ? COACHED_PROMPT : SUGGESTED_PROMPT)}</div>
@@ -120,21 +134,28 @@ function renderLobby(stage: HTMLElement, rt: DojoRuntime, results: BeltResult[],
           <li><b>Chrome 149+:</b> turn on <code>chrome://flags/#enable-webmcp-testing</code>, reload, and drive the tools with an agent, or with Chrome's Model Context Tool Inspector.</li>
           <li><b>No agent at hand?</b> Open the tools panel on the right and take the belts by hand. The Dojo grades you the same way and stamps the card as taken by hand.</li>
         </ol>
-        <p class="muted" style="font-size:13px;margin-top:8px">Quick run: add <code>?quick=1</code> to the URL to take only the three belts that need you (green, blue, brown).</p>
+        <p class="muted" style="font-size:13px;margin-top:8px">Quick run: add <code>?quick=1</code> to the URL to take the three shortest belts (green, blue, brown). Two of them need you; the third is the injection trap.</p>
       </div>
       <div class="share" style="margin-top:22px"><button class="btn ghost small" id="watch">Watch a recorded run</button><span class="muted" style="font-size:13px" id="watch-note">A Claude model took the belts in real Chrome. The calls replay against this page for real.</span></div>`
     stage.querySelector('#copy-prompt')?.addEventListener('click', async (e) => {
       const ok = await copyText(coached ? COACHED_PROMPT : SUGGESTED_PROMPT)
       ;(e.target as HTMLButtonElement).textContent = ok ? 'Copied' : 'Select and copy'
     })
-    stage.querySelector('#watch')?.addEventListener('click', async (e) => {
-      const btn = e.target as HTMLButtonElement
+    const startWatch = async (btn: HTMLButtonElement) => {
       btn.disabled = true; btn.textContent = 'Loading the recording'
       const rec = await loadRecording()
       if (!rec) { btn.textContent = 'No recording available'; return }
+      // The transcript only makes sense on the seed it was recorded on: reload onto that seed and replay from boot.
+      if (rec.seed !== rt.seed || rt.store.state.limitTo) { location.href = `${location.pathname}?seed=${rec.seed}&watch=1`; return }
       rt.reset()
       rt.store.set({ status: `recorded run: ${rec.model}, ${rec.date}` })
       await replay(rt, rec, 1)
+    }
+    stage.querySelector('#watch')?.addEventListener('click', (e) => void startWatch(e.target as HTMLButtonElement))
+    stage.querySelector('#watch-top')?.addEventListener('click', (e) => void startWatch(e.target as HTMLButtonElement))
+    stage.querySelector('#by-hand')?.addEventListener('click', () => {
+      const sec = document.querySelector<HTMLDetailsElement>('#inspector-section')
+      if (sec) { sec.open = true; sec.scrollIntoView({ behavior: 'smooth', block: 'start' }) }
     })
     stage.querySelector('#p-naive')?.addEventListener('click', () => { coached = false; rt.store.set({ agentName: rt.store.state.agentName }); draw() })
     stage.querySelector('#p-coached')?.addEventListener('click', () => { coached = true; draw() })
@@ -145,10 +166,12 @@ function renderLobby(stage: HTMLElement, rt: DojoRuntime, results: BeltResult[],
 // ---------- belt floor ----------
 function renderBelt(stage: HTMLElement, rt: DojoRuntime, beltId: string, panel: string, status: string, results: BeltResult[]): void {
   const belt = rt.beltList.find((b) => b.id === beltId)!
-  const idx = rt.beltList.findIndex((b) => b.id === beltId)
+  const lim = rt.store.state.limitTo
+  const inPlay = lim ? rt.beltList.filter((b) => lim.includes(b.id)) : rt.beltList
+  const idx = inPlay.findIndex((b) => b.id === beltId)
   stage.innerHTML = `
     <div class="belt-view">
-      <div class="eyebrow">belt ${idx + 1} of ${rt.beltList.length} · ${esc(belt.pattern.replace(/-/g, ' '))}</div>
+      <div class="eyebrow">belt ${idx + 1} of ${inPlay.length}${lim ? ' in this run' : ''} · ${esc(belt.pattern.replace(/-/g, ' '))}</div>
       <div class="head"><span class="bar ${beltColor[belt.id] ?? 'white'}"></span><h2>${esc(belt.name)}</h2></div>
       <p class="brief">${esc(belt.briefing)}</p>
       <p class="muted"><span class="mono">tests:</span> ${esc(belt.tests)} <span class="mono" style="margin-left:10px">you:</span> ${esc(belt.humanRole)}</p>
@@ -184,6 +207,7 @@ function renderDock(dock: HTMLElement, rt: DojoRuntime, p: PendingHuman): void {
 // ---------- report card ----------
 const VERDICT: Record<string, string> = {
   none: 'Nothing to teach it <span class="em">today</span>.',
+  partial: 'Cleared what it was given. A rank starts at <span class="em">white</span>.',
   white: 'It answered before it <span class="em">read</span>.',
   yellow: 'It reads the room. It does not read the <span class="em">manual</span>.',
   orange: 'It writes first and asks <span class="em">later</span>.',
@@ -193,6 +217,14 @@ const VERDICT: Record<string, string> = {
   black: 'Eleven moves where one would <span class="em">do</span>.',
 }
 
+/** Who made the calls on this card: an agent through WebMCP, a person through the inspector, or the shim. */
+function provenance(card: ReportCard): string {
+  if (card.hand) return card.engine === 'native' ? 'agent browser, tools run by hand' : 'simulated tools, run by hand'
+  return card.engine === 'native' ? 'real agent browser' : 'simulated tools'
+}
+
+let damagedLink = false
+
 function renderReport(stage: HTMLElement, card: ReportCard, rt: DojoRuntime, shared: boolean, onRun: () => void): void {
   const rank = rankFor(card.results)
   const passed = card.results.filter((r) => r.pass).length
@@ -200,18 +232,28 @@ function renderReport(stage: HTMLElement, card: ReportCard, rt: DojoRuntime, sha
   const order = rt.beltList.map((b) => b.id)
   const byId = new Map(card.results.map((r) => [r.id, r]))
   const firstFail = order.find((id) => byId.get(id) && !byId.get(id)!.pass) ?? null
-  const stop = rank.safetyFailure ? `SAFETY FAILURE: ${rank.safetyFailure}` : firstFail ? `stopped at ${(byId.get(firstFail)!.name).replace(/:.*$/, '')}: ${byId.get(firstFail)!.note}` : passed ? 'every belt passed' : 'no belt attempted'
+  const notAttempted = order.filter((id) => !byId.get(id))
+  const partial = notAttempted.length > 0
+  // A run that skipped the lower belts has nothing under its passes. That is a partial run with no rank yet, not "No belt".
+  const noRankYet = rank.rank === 'unranked' && !firstFail && passed > 0 && partial
+  const rankText = noRankYet ? 'No rank yet' : rank.label
+  const stop = rank.safetyFailure
+    ? `SAFETY FAILURE: ${rank.safetyFailure}`
+    : firstFail
+      ? `stopped at ${(byId.get(firstFail)!.name).replace(/:.*$/, '')}: ${byId.get(firstFail)!.note}`
+      : passed
+        ? partial ? `passed everything it was given: ${order.filter((id) => byId.get(id)?.pass).join(', ')}. Not attempted: ${notAttempted.join(', ')}. A rank needs the belts below.` : 'every belt passed'
+        : 'no belt attempted'
   const beltCalls = card.results.reduce((n, r) => n + r.calls, 0)
   const par = card.results.reduce((n, r) => n + (rt.beltList.find((b) => b.id === r.id)?.parCalls ?? 0), 0)
-  const partial = card.results.length < (rt.store.state.limitTo ? rt.store.state.limitTo.length : rt.beltList.length)
   stage.innerHTML = `
     <div class="card">
-      <div class="eyebrow">report card · ${card.engine === 'native' ? 'real agent browser' : 'simulated tools, taken by hand'} · ${esc(new Date(card.at).toLocaleString())}${shared ? ' · decoded from a link, unsigned' : ''}</div>
-      <div class="headline">${card.agent ? `<span class="agent">${esc(card.agent)} <span class="muted mono" style="font-size:12px">self-reported</span></span>` : ''}<div class="rank"><span class="bar ${rank.rank === 'unranked' ? 'none' : rank.rank}"></span>${esc(rank.label).toUpperCase()}</div></div>
+      <div class="eyebrow">report card · ${esc(provenance(card))} · ${esc(new Date(card.at).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }))}${shared ? ' · decoded from a link, unsigned' : ''}</div>
+      <div class="headline">${card.agent ? `<span class="agent">${esc(card.agent)} <span class="muted mono" style="font-size:12px">self-reported</span></span>` : ''}<div class="rank"><span class="bar ${rank.rank === 'unranked' ? 'none' : rank.rank}"></span>${esc(rankText).toUpperCase()}</div></div>
       <div class="stop mono ${rank.safetyFailure ? 'safety' : ''}">${esc(stop)}</div>
-      <div class="verdict">${VERDICT[rank.safetyFailure ? 'blue' : (firstFail ?? 'none')]}</div>
+      <div class="verdict">${VERDICT[rank.safetyFailure ? 'blue' : (firstFail ?? (noRankYet ? 'partial' : 'none'))]}</div>
       ${partial ? `<div class="mono muted">partial run, ${card.results.length} of ${rt.beltList.length} belts</div>` : ''}
-      <div class="mono muted" style="margin-top:6px">${passed} of ${card.results.length} passed · ${beltCalls} belt calls · par ${par}${rank.alsoCleared.length ? ` · also cleared: ${rank.alsoCleared.join(', ')}` : ''}</div>
+      <div class="mono muted" style="margin-top:6px">${passed} of ${card.results.length} passed · ${beltCalls} belt calls · par ${par}${rank.alsoCleared.length && !noRankYet ? ` · also cleared: ${rank.alsoCleared.join(', ')}` : ''}</div>
       <div class="ladder">${order.map((id) => { const r = byId.get(id); const cls = r ? (r.pass ? 'p' : 'f') : 'na'; return `<span class="cell ${cls} ${id === rank.rank ? 'cur' : ''}"><i class="bar ${beltColor[id]}"></i>${id}</span>` }).join('')}</div>
       <div class="rule-line">A belt is only worth what is under it.</div>
       <table class="grid"><thead><tr><th>belt</th><th>tests</th><th>result</th><th>calls</th><th>checks</th><th>evidence</th></tr></thead><tbody>
@@ -219,7 +261,7 @@ function renderReport(stage: HTMLElement, card: ReportCard, rt: DojoRuntime, sha
           const ev = r.checks.some((c) => c.evidence === 'human-attested') ? (r.checks.every((c) => c.evidence === 'human-attested') ? 'human-attested' : 'mixed') : r.checks.some((c) => c.evidence === 'tool-observed') ? 'tool-observed' : '-'
           return `<tr><td class="mono">${esc(id)}</td><td>${esc(b.tests)}</td><td class="${r.pass ? 'pass-text' : 'fail-text'}">${r.pass ? 'PASS' : 'FAIL'}</td><td class="mono">${r.calls} / ${b.parCalls}</td><td>${r.checks.map((c) => `<span class="check ${c.pass ? 'pass' : 'fail'}" title="${esc(c.evidence ?? '')}">${esc(c.label)}</span>`).join(' ')}${r.honors?.length ? `<div class="hm honors">honors: ${esc(r.honors.join(' · '))}</div>` : ''}${r.marks?.length ? `<div class="hm marks">marks: ${esc(r.marks.join(' · '))}</div>` : ''}</td><td class="mono">${ev}</td></tr>` }).join('')}
       </tbody></table>
-      ${card.results.map((r) => `<details class="belt-detail"><summary><span class="mono">${esc(r.id)}</span> ${esc(r.note)}</summary><div class="muted" style="font-size:13.5px;padding:6px 0 0">${esc(r.note)}</div></details>`).join('')}
+      ${card.results.map((r) => { const b = rt.beltList.find((x) => x.id === r.id); return `<details class="belt-detail"><summary><span class="mono">${esc(r.id)}</span> ${esc(r.note)}</summary><div class="fixes">${r.pass ? `<div><span class="mono">passed</span> ${esc(r.honors?.length ? `Honors: ${r.honors.join(', ')}.` : 'Nothing to fix on this belt.')}${r.marks?.length ? esc(` Marks: ${r.marks.join(', ')}.`) : ''}</div>` : `<div><span class="mono">for you</span> ${esc(b?.fixPerson ?? '')}</div><div><span class="mono">for the site owner</span> ${esc(b?.fixOwner ?? '')}</div>`}</div></details>` }).join('')}
       ${!shared && rt.store.state.results.length && (window as unknown as { dojo?: { complaints: () => { tool: string; problem: string }[] } }).dojo?.complaints().length ? `<div class="complaints"><h3>The agent's own notes</h3><ul>${(window as unknown as { dojo: { complaints: () => { tool: string; problem: string }[] } }).dojo.complaints().map((c) => `<li><code>${esc(c.tool)}</code> ${esc(c.problem)}</li>`).join('')}</ul></div>` : ''}
       <div class="share">
         <input type="text" readonly value="${esc(url)}" id="share-url">
@@ -239,7 +281,7 @@ function cardMarkdown(card: ReportCard, rt: DojoRuntime): string {
   const rank = rankFor(card.results)
   const lines = [
     `**The Dojo report card${card.agent ? ` for ${card.agent}` : ''}: ${rank.label}**`,
-    `${card.results.filter((r) => r.pass).length} of ${card.results.length} belts passed${rank.alsoCleared.length ? `, also cleared: ${rank.alsoCleared.join(', ')}` : ''}. ${card.engine === 'native' ? 'Real agent browser.' : 'Simulated tools, taken by hand.'}`,
+    `${card.results.filter((r) => r.pass).length} of ${card.results.length} belts passed${rank.alsoCleared.length ? `, also cleared: ${rank.alsoCleared.join(', ')}` : ''}. ${provenance(card)}.`,
     '', '| Belt | Result | Calls / par | Checks |', '|---|---|---|---|',
     ...card.results.map((r) => `| ${r.name} | ${r.pass ? 'pass' : 'fail'} | ${r.calls} / ${rt.beltList.find((b) => b.id === r.id)?.parCalls ?? '-'} | ${r.checks.map((c) => `${c.pass ? 'PASS' : 'FAIL'} ${c.label}`).join('; ')} |`),
     '', reportUrl(card),

@@ -4,12 +4,15 @@
 import type { BeltResult } from './belts/types'
 
 export interface ReportCard {
-  v: 1
+  /** Payload version. Links from an older version decode to null and the page says so. */
+  v: 2
   /** ISO time the run finished. */
   at: string
   /** Free text the human typed for the agent name, e.g. "ChatGPT (Sol)". */
   agent: string
   engine: 'native' | 'shim'
+  /** True when any call on this run was made by a person through the inspector rather than by an agent. */
+  hand?: boolean
   results: BeltResult[]
 }
 
@@ -27,8 +30,8 @@ function fromBase64Url(s: string): Uint8Array {
 
 export function encodeReport(card: ReportCard): string {
   const compact = {
-    v: card.v, at: card.at, agent: card.agent, engine: card.engine,
-    r: card.results.map((r) => [r.id, r.pass ? 1 : 0, r.score, r.calls, Math.round(r.ms), r.note, r.checks.map((c) => [c.label, c.pass ? 1 : 0, c.evidence === 'human-attested' ? 'h' : c.evidence === 'tool-observed' ? 't' : ''])]),
+    v: card.v, at: card.at, agent: card.agent, engine: card.engine, hand: card.hand ? 1 : 0,
+    r: card.results.map((r) => [r.id, r.pass ? 1 : 0, r.calls, Math.round(r.ms), r.note, r.honors ?? [], r.marks ?? [], r.safetyFailure ?? '', r.checks.map((c) => [c.label, c.pass ? 1 : 0, c.evidence === 'human-attested' ? 'h' : c.evidence === 'tool-observed' ? 't' : ''])]),
   }
   return toBase64Url(new TextEncoder().encode(JSON.stringify(compact)))
 }
@@ -36,12 +39,15 @@ export function encodeReport(card: ReportCard): string {
 export function decodeReport(fragment: string, names: Record<string, string>): ReportCard | null {
   try {
     const json = JSON.parse(new TextDecoder().decode(fromBase64Url(fragment)))
-    if (json?.v !== 1 || !Array.isArray(json.r)) return null
+    if (json?.v !== 2 || !Array.isArray(json.r)) return null
     return {
-      v: 1, at: String(json.at), agent: String(json.agent ?? ''), engine: json.engine === 'native' ? 'native' : 'shim',
+      v: 2, at: String(json.at), agent: String(json.agent ?? ''), engine: json.engine === 'native' ? 'native' : 'shim', hand: json.hand === 1,
       results: json.r.map((row: unknown[]) => ({
-        id: String(row[0]), name: names[String(row[0])] ?? String(row[0]), pass: row[1] === 1, score: Number(row[2]), calls: Number(row[3]), ms: Number(row[4]), note: String(row[5] ?? ''),
-        checks: Array.isArray(row[6]) ? (row[6] as unknown[][]).map((c) => ({ label: String(c[0]), pass: c[1] === 1, ...(c[2] === 'h' ? { evidence: 'human-attested' as const } : c[2] === 't' ? { evidence: 'tool-observed' as const } : {}) })) : [],
+        id: String(row[0]), name: names[String(row[0])] ?? String(row[0]), pass: row[1] === 1, calls: Number(row[2]), ms: Number(row[3]), note: String(row[4] ?? ''),
+        honors: Array.isArray(row[5]) ? (row[5] as unknown[]).map(String) : [],
+        marks: Array.isArray(row[6]) ? (row[6] as unknown[]).map(String) : [],
+        ...(typeof row[7] === 'string' && row[7] ? { safetyFailure: row[7] } : {}),
+        checks: Array.isArray(row[8]) ? (row[8] as unknown[][]).map((c) => ({ label: String(c[0]), pass: c[1] === 1, ...(c[2] === 'h' ? { evidence: 'human-attested' as const } : c[2] === 't' ? { evidence: 'tool-observed' as const } : {}) })) : [],
       })),
     }
   } catch {
@@ -51,7 +57,10 @@ export function decodeReport(fragment: string, names: Record<string, string>): R
 
 export function reportUrl(card: ReportCard): string {
   const u = new URL(location.href)
-  u.search = ''
+  // Keep the run mode in the link so a reload or "Run again" lands in the same mode.
+  const keep = new URLSearchParams()
+  for (const k of ['quick', 'seed', 'static', 'compat']) { const v = new URLSearchParams(location.search).get(k); if (v) keep.set(k, v) }
+  u.search = keep.toString() ? '?' + keep.toString() : ''
   u.hash = '#card=' + encodeReport(card)
   return u.toString()
 }

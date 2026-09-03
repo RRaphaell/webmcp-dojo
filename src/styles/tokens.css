@@ -15,8 +15,8 @@
   --green: #3f5442;
   --green-ink: #2e3d31;
   --purple: #7a4fb3;
-  --fail: #9a3b2e;
-  --fail-wash: #f6ebe8;
+  --fail: var(--ink);
+  --fail-wash: var(--surface);
   --pass-wash: #e6eee7;
   --code-bg: #171815;
   --code-ink: #e9eae4;
@@ -45,8 +45,8 @@
     --green: #7fa88e;
     --green-ink: #9bc2a8;
     --purple: #a98ad6;
-    --fail: #d98a7c;
-    --fail-wash: #2e1f1c;
+    --fail: var(--ink);
+    --fail-wash: var(--surface);
     --pass-wash: #1e2a21;
     --code-bg: #0c0e0c;
     --code-ink: #dfe1da;
@@ -67,8 +67,8 @@
   --green: #7fa88e;
   --green-ink: #9bc2a8;
   --purple: #a98ad6;
-  --fail: #d98a7c;
-  --fail-wash: #2e1f1c;
+  --fail: var(--ink);
+  --fail-wash: var(--surface);
   --pass-wash: #1e2a21;
   --code-bg: #0c0e0c;
   --code-ink: #dfe1da;

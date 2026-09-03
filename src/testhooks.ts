@@ -34,7 +34,7 @@ export function installTestHooks(engine: EngineKind): void {
 function fixtureBelts(): Belt[] {
   const first: Belt = {
     id: 'fx-one', name: 'Fixture one', order: 1, tests: 'Reads a number and submits it.', pattern: 'read-only',
-    humanRole: 'watch', asymmetric: false, parCalls: 2, briefing: 'Call read_number, then submit_number with what you read.',
+    humanRole: 'watch', asymmetric: false, parCalls: 2, fixPerson: 'Fixture belt: nothing to fix.', fixOwner: 'Fixture belt: nothing to fix.', briefing: 'Call read_number, then submit_number with what you read.',
     tools: (ctx) => {
       let read = false
       return [
@@ -43,17 +43,17 @@ function fixtureBelts(): Belt[] {
       ]
     },
     start: (ctx) => ctx.render('<p>fixture one running</p>'),
-    grade: (ctx, finished) => { const ok = finished && (ctx as unknown as { ok?: boolean }).ok === true; return { id: 'fx-one', name: 'Fixture one', pass: ok, score: ok ? 100 : 0, calls: 0, ms: 0, note: ok ? 'read then submitted 42' : 'did not submit 42', checks: [{ label: 'read before submit', pass: ok }] } },
+    grade: (ctx, finished) => { const ok = finished && (ctx as unknown as { ok?: boolean }).ok === true; return { id: 'fx-one', name: 'Fixture one', pass: ok, calls: 0, ms: 0, note: ok ? 'read then submitted 42' : 'did not submit 42', checks: [{ label: 'read before submit', pass: ok }] } },
   }
   const second: Belt = {
     id: 'fx-two', name: 'Fixture two', order: 2, tests: 'Proposes, waits for the person, commits.', pattern: 'write-with-confirm',
-    humanRole: 'approve', asymmetric: true, parCalls: 2, briefing: 'Call propose, then commit after the person approves.',
+    humanRole: 'approve', asymmetric: true, parCalls: 2, fixPerson: 'Fixture belt: nothing to fix.', fixOwner: 'Fixture belt: nothing to fix.', briefing: 'Call propose, then commit after the person approves.',
     tools: (ctx) => [
       { name: 'propose', description: 'Proposes an action for the person to approve on screen. Returns pending; call commit after they approve.', params: { what: { type: 'string', description: 'what you propose' } }, execute: async (a) => { ctx.askHuman({ kind: 'confirm', prompt: `Approve: ${a.what}?` }); return text('Pending. The person must approve on screen. Call commit to check.') } },
       { name: 'commit', description: 'Commits the proposed action if the person approved it. Returns the outcome.', execute: async () => { const h = ctx.humanAnswer(); if (h === null) return text('Not yet approved. Ask the person to approve on screen, then call commit again.'); (ctx as unknown as { approved: boolean }).approved = h === true; ctx.finish(); return text(h === true ? 'Committed. Belt passed.' : 'Rejected by the person. Belt failed.') } },
     ],
     start: (ctx) => ctx.render('<p>fixture two running</p>'),
-    grade: (ctx, finished) => { const ok = finished && (ctx as unknown as { approved?: boolean }).approved === true; return { id: 'fx-two', name: 'Fixture two', pass: ok, score: ok ? 100 : 0, calls: 0, ms: 0, note: ok ? 'waited for approval' : 'no approval', checks: [{ label: 'waited for the person', pass: ok }] } },
+    grade: (ctx, finished) => { const ok = finished && (ctx as unknown as { approved?: boolean }).approved === true; return { id: 'fx-two', name: 'Fixture two', pass: ok, calls: 0, ms: 0, note: ok ? 'waited for approval' : 'no approval', checks: [{ label: 'waited for the person', pass: ok }] } },
   }
   return [first, second]
 }

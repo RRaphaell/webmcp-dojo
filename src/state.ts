@@ -58,7 +58,7 @@ export class Store {
   }
 
   push(record: ToolCallRecord): void {
-    this.set({ feed: [...this.state.feed, record], agentAttached: true })
+    this.set({ feed: [...this.state.feed, record], agentAttached: this.state.agentAttached || !record.via })
   }
 
   event(ev: FeedEvent): void {

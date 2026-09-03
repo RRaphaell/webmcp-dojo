@@ -32,6 +32,9 @@ const CHIP: Record<AttachState, string> = {
 }
 
 let prevToolNames: string[] = []
+/** Names that left the registered set, with the time they left; struck through for a few seconds. */
+let departed: { name: string; at: number }[] = []
+const LINGER_MS = 4000
 
 export function renderRail(container: HTMLElement, opts: {
   engine: EngineKind
@@ -51,12 +54,13 @@ export function renderRail(container: HTMLElement, opts: {
 
   // LIVE TOOLS with strike-through of names that just left.
   const names = tools.map((t) => t.spec.name)
-  const gone = prevToolNames.filter((n) => !names.includes(n))
+  const justGone = prevToolNames.filter((n) => !names.includes(n))
   const added = names.filter((n) => !prevToolNames.includes(n))
   prevToolNames = names
+  departed = [...departed.filter((d) => now - d.at < LINGER_MS && !names.includes(d.name)), ...justGone.map((name) => ({ name, at: now }))]
   const toolRows = [
     ...tools.map((t) => `<li class="lt ${added.includes(t.spec.name) ? 'new' : ''}"><code>${esc(t.spec.name)}</code>${badges(t)}</li>`),
-    ...gone.map((n) => `<li class="lt gone"><code>${esc(n)}</code></li>`),
+    ...departed.map((d) => `<li class="lt gone"><code>${esc(d.name)}</code></li>`),
   ].join('')
 
   // Merge calls and events into one stream by time.

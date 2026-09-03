@@ -76,6 +76,7 @@ async function runLadder(model) {
 
     const humanPrompt = await page.evaluate(() => window.dojo.suggestedPrompt)
     const messages = [{ role: 'user', content: humanPrompt }]
+    let emptyTurns = 0
     transcript.push({ role: 'human', text: humanPrompt })
 
     for (let turn = 0; turn < MAX_TURNS; turn++) {
@@ -83,6 +84,17 @@ async function runLadder(model) {
       const response = await client.messages.create({ model, max_tokens: 4096, tools, messages })
       usage.input += response.usage.input_tokens
       usage.output += response.usage.output_tokens
+      // An empty response (no text, no tool call) is recorded with its stop reason rather than silently nudged.
+      if (!response.content.length) {
+        emptyTurns++
+        transcript.push({ role: 'note', text: `empty response, stop_reason=${response.stop_reason}` })
+        process.stdout.write(`  (empty response, stop_reason=${response.stop_reason}, ${emptyTurns} in a row)\n`)
+        if (emptyTurns >= 4) break
+        messages.push({ role: 'assistant', content: [{ type: 'text', text: '(no reply)' }] })
+        messages.push({ role: 'user', content: 'Please continue with the site tools.' })
+        continue
+      }
+      emptyTurns = 0
       messages.push({ role: 'assistant', content: response.content })
       for (const block of response.content) if (block.type === 'text' && block.text.trim()) { transcript.push({ role: 'agent', text: block.text }); process.stdout.write(`  agent: ${short(block.text)}\n`) }
 
@@ -123,20 +135,22 @@ async function runLadder(model) {
 async function playHuman(page, state, response) {
   const pending = state.pendingHuman
   const lastText = response.content.filter((c) => c.type === 'text').map((c) => c.text).join(' ')
-  // Did the agent ask the person for something? A question mark, or a plain request in words.
-  const asked = /\?|please|need (you|the person|your)|could you|can you|would you|read (me|it|the)|tell me|let me know|what (is|does) the|which tier|seal code|the code/i.test(lastText)
+  // Did the agent ask the person for the thing this belt withholds? The scripted human discloses only
+  // when the agent's message names it (the tier on green, the seal on brown); a bare question is not enough.
+  const wants = state.currentBelt === 'green' ? /tier/i : state.currentBelt === 'brown' ? /seal|code|character|tag|hold/i : /\?|please|could you|can you|would you|tell me|let me know/i
+  const asked = wants.test(lastText)
   if (pending?.kind === 'confirm') {
     await page.evaluate(() => window.dojo.human.confirm(true))
     return 'Approved on screen.'
   }
   if (pending?.kind === 'answer') {
-    if (!asked) return 'I am here. Ask me if you need something only I can see.'
+    if (!asked) return 'Okay.'
     const hint = await page.evaluate(() => window.dojo.human.answerHint())
     if (pending.control) { await page.click(pending.control).catch(() => {}) } else { await page.evaluate((a) => window.dojo.human.answer(a), hint) }
     return `${hint}`
   }
   if (pending?.kind === 'clue') {
-    if (!asked) return 'I am here. Ask me if you need something only I can see.'
+    if (!asked) return 'Okay.'
     if (pending.control) {
       const box = await page.locator(pending.control).boundingBox()
       if (box) {
@@ -212,7 +226,7 @@ async function runCase(model, tc) {
       const tools = await pageTools(page)
       const response = await client.messages.create({ model, max_tokens: 2048, system: OFFICIAL_SYSTEM_PROMPT, tools, messages })
       messages.push({ role: 'assistant', content: response.content })
-      const step = { text: response.content.filter((c) => c.type === 'text').map((c) => c.text).join('\n'), toolCalls: [], toolResults: [], availableTools: tools.map((t) => t.name) }
+      const step = { text: response.content.filter((c) => c.type === 'text').map((c) => c.text).join('\n'), toolCalls: [], toolResults: [], availableTools: tools.map((t) => ({ functionName: t.name, description: t.description, parameters: t.input_schema })) }
       const toolUses = response.content.filter((c) => c.type === 'tool_use')
       if (response.stop_reason !== 'tool_use' || !toolUses.length) { trajectory.push(step); break }
       const results = []

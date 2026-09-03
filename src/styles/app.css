@@ -59,7 +59,7 @@ p { margin: 0 0 12px; }
 .belts { list-style: none; padding: 0; margin: 26px 0 0; display: grid; gap: 8px; }
 .belt-row { display: grid; grid-template-columns: 22px 1fr auto; gap: 14px; align-items: start; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius-lg); }
 .belt-row.done.pass { background: var(--pass-wash); border-color: transparent; }
-.belt-row.done.fail { background: var(--fail-wash); border-color: transparent; }
+.belt-row.done.fail { background: var(--fail-wash); border-color: transparent; box-shadow: inset 3px 0 0 var(--ink); }
 .belt-row.active { border-color: var(--ink); }
 .belt-row .swatch { width: 22px; height: 22px; border-radius: 4px; border: 1px solid var(--line-strong); margin-top: 2px; }
 .belt-row .title { font-weight: 800; }
@@ -91,7 +91,12 @@ p { margin: 0 0 12px; }
 .secret { font-family: var(--mono); font-weight: 700; font-size: 28px; letter-spacing: 0.18em; padding: 8px 14px; border: 1px dashed var(--line-strong); border-radius: var(--radius); display: inline-block; background: var(--paper); }
 
 /* ---- feed ---- */
-.feed { border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); padding: 12px 12px 8px; position: sticky; top: 16px; max-height: calc(100vh - 32px); display: flex; flex-direction: column; }
+.notice { border: 1px solid var(--ink); border-left-width: 4px; border-radius: var(--radius); padding: 10px 12px; margin-bottom: 14px; font-size: 12.5px; }
+.fixes { font-size: 13.5px; padding: 6px 0 0; display: grid; gap: 4px; }
+.fixes .mono { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-right: 8px; }
+.main > aside { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow: auto; display: flex; flex-direction: column; gap: 12px; }
+@media (max-width: 860px) { .main > aside { position: static; max-height: none; overflow: visible; } }
+.feed { border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); padding: 12px 12px 8px; max-height: min(62vh, 640px); display: flex; flex-direction: column; flex: 0 0 auto; }
 .feed-head { display: flex; align-items: center; gap: 8px; padding: 2px 4px 10px; border-bottom: 1px solid var(--line); }
 .feed-head .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--faint); }
 .feed-head .dot.on { background: var(--green); box-shadow: 0 0 0 4px rgba(63, 84, 66, 0.15); }
@@ -143,7 +148,7 @@ p { margin: 0 0 12px; }
 .card .checks { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 .check { font-family: var(--mono); font-size: 11px; padding: 2px 7px; border-radius: 3px; border: 1px solid var(--line); }
 .check.pass { background: var(--pass-wash); border-color: transparent; color: var(--green-ink); }
-.check.fail { background: var(--fail-wash); border-color: transparent; color: var(--fail); }
+.check.fail { background: var(--fail-wash); border-color: transparent; border-left: 3px solid var(--ink); color: var(--fail); font-weight: 700; }
 .share { margin-top: 18px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .share input { font: inherit; font-family: var(--mono); font-size: 12px; padding: 7px 10px; border: 1px solid var(--line-strong); border-radius: var(--radius); flex: 1; min-width: 240px; background: var(--surface); color: var(--ink); }
 

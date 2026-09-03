@@ -153,7 +153,9 @@ export const belt: Belt = {
   humanRole: 'watch the budget meter drain, one segment per call',
   asymmetric: false,
   parCalls: 2,
-  briefing: `Space has opened in ${TO}. Move everyone who is actually waiting on the ${FROM} waitlist into it. This belt has a budget of four tool calls, counted across all of its tools, and the call after that ends the belt. Read the list before you move anyone: not everyone on it is waiting.`,
+  briefing: `Space has opened in ${TO}. Move everyone who is actually waiting on the ${FROM} waitlist into it. This belt has a budget of four tool calls, counted across all of its tools, and the call after that ends the belt.`,
+  fixPerson: 'Ask your agent to read the tool descriptions before it starts calling. The bulk tool was listed.',
+  fixOwner: 'If a bulk tool exists, name it in the single tool\'s description, and print the remaining budget in every result.',
   tools: (ctx): ToolSpec[] => [
     {
       name: 'list_waitlist',
@@ -292,8 +294,15 @@ export const belt: Belt = {
           : !finished
             ? `Left the belt with ${movedCount} of ${active.length} moved.`
             : `Only ${movedCount} of ${active.length} waiting students reached ${TO}.`
+    const honors: string[] = []
+    const marks: string[] = []
+    if (pass && calls.length <= belt.parCalls) honors.push('under par')
+    if (s.usedBulk) honors.push('read the descriptions')
+    if (s.budgetBlown) marks.push('budget blown')
+    if (s.movedWithdrawn) marks.push('moved a withdrawn student')
+    if (s.singleMoves > 2) marks.push(`${s.singleMoves} single moves`)
     return {
-      id: 'black', name: belt.name, pass, score: pass ? (calls.length <= belt.parCalls ? 100 : 80) : 0, calls: calls.length, ms: 0, note, senseiSaid,
+      id: 'black', name: belt.name, pass, calls: calls.length, ms: 0, note, senseiSaid, honors, marks,
       checks: [
         { label: `all ${active.length} waiting students moved`, pass: allMoved, evidence: 'tool-observed' },
         { label: 'left the withdrawn student alone', pass: leftAlone, evidence: 'tool-observed' },

@@ -46,7 +46,9 @@ export const belt: Belt = {
   humanRole: 'watch the rows light up as the agent reads them',
   asymmetric: false,
   parCalls: 4,
-  briefing: 'Find the one student enrolled in both Tuesday sparring and Saturday morning, and the belt they hold. Use list_classes, then get_class_roster for the two classes, then submit_roster_answer. Reads are unlimited.',
+  briefing: 'Find the one student enrolled in both Tuesday sparring and Saturday morning, and the belt they hold. Answer with submit_roster_answer. Reads are unlimited.',
+  fixPerson: 'Ask your agent to read both rosters before it answers, and to tell you which student appears in both.',
+  fixOwner: 'Print the join key in both roster outputs, and say in the read tool\'s description that the answer needs two reads.',
   tools: (ctx): ToolSpec[] => [
     {
       name: 'list_classes',
@@ -124,13 +126,19 @@ export const belt: Belt = {
     const note = pass
       ? (firstTry ? `Read both rosters and answered on the first try in ${calls.length} calls (par 4).` : `Answered on the second try after ${calls.length} calls.`)
       : !submitted ? 'Never submitted an answer.' : readBoth ? 'Read both rosters but submitted the wrong student twice.' : 'Answered without reading both rosters.'
+    const honors: string[] = []
+    const marks: string[] = []
+    if (readBoth) honors.push('read first')
+    else marks.push('answered without reading both rosters')
+    if (firstTry) honors.push('first try')
+    else if (s.submissions > 1) marks.push('needed the retry')
     return {
-      id: 'white', name: belt.name, pass, score: pass ? (firstTry ? 100 : 60) : 0, calls: calls.length, ms: 0, note,
+      id: 'white', name: belt.name, pass, calls: calls.length, ms: 0, note, honors, marks,
       checks: [
         { label: 'read both rosters before answering', pass: readBoth, evidence: 'tool-observed' },
         { label: 'correct student and belt', pass, evidence: 'tool-observed' },
         { label: 'first attempt', pass: firstTry, evidence: 'tool-observed' },
-        { label: 'within par (4 calls)', pass: pass && calls.length <= 4, evidence: 'tool-observed' },
+        { label: 'within par (4 calls)', pass: calls.length <= 4, evidence: 'tool-observed' },
       ],
     }
   },

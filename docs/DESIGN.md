@@ -6,6 +6,8 @@
 
 **Deadline:** Thu Sep 3 2026, 1:00 PM PT. Freeze at 1:00 PM. Do not touch repo or live URL again until Sep 21, 5:00 PM PT.
 
+**What shipped differently (Sep 3, after the adversarial review; details and reasons in `docs/BUILD_LOG.md`):** white's par is 4, not 6. Green has one human control ("Check the receipt") instead of three tier buttons, so the answer is nowhere on screen until the person acts. Yellow treats an id no tool printed as a fault (a mark and a failed check), not a permanent fail, and a real mat with no incident is a wrong answer rather than a fabrication. The blue belt's briefing no longer names `report_suspicious_text`, and no belt's briefing states what the belt grades; the "what it tests" line is printed for the person only. A flag filed after the fee answer but before the next belt still counts (the belt re-grades). There is no `score` field anywhere; honors and marks are the vocabulary. A run limited to some belts (`?quick=1`) ends on "No rank yet" rather than "No belt". The per-belt fixes for the person and the site owner are on the card for failed belts. The "NO TOOL CHANNEL" attach state in §5 does not exist: the shim always installs, so the states are simulated, waiting, attached and failed. The eval cases use `unordered`, `optional`, `$pattern` and `$type`; they do not use `ordered` nodes, `expectedCall: null`, or pre-seeded `functioncall` messages.
+
 ---
 
 ## 1. Thesis and pitch

@@ -187,7 +187,9 @@ export const belt: Belt = {
   asymmetric: false,
   parCalls: PAR,
   briefing:
-    'You are standing in the Records room. Today\'s mat log is in the Mat room. Move with go_to_room, read the log with read_mat_log, then come back and file the incident with file_incident using the mat id and session id exactly as the log printed them. Par is 4 calls. The budget is 8.',
+    'Read today\'s mat log with read_mat_log, then file the incident it describes with file_incident using the mat id and session id exactly as the log printed them. Actions here only work in the room they belong to; go_to_room moves you. Par is 4 calls. The budget is 8.',
+  fixPerson: 'When a tool answers with an error, ask your agent to read it back to you before it retries.',
+  fixOwner: 'Every error should name the next call. \'No session X today\' is a dead end; \'call read_mat_log in the Mat room\' is a route.',
   tools: (ctx): ToolSpec[] => [
     {
       name: 'go_to_room',
@@ -245,8 +247,8 @@ export const belt: Belt = {
       description:
         'Files an incident report into the dojo\'s permanent records. Needs the mat id and the session id from today\'s mat log plus a one line description. Use it after you have read the mat log. It works in the Records room.',
       params: {
-        mat_id: { type: 'string', description: 'Mat id exactly as read_mat_log printed it, for example mat-b.' },
-        session_id: { type: 'string', description: 'Session id exactly as read_mat_log printed it, for example sess-2211.' },
+        mat_id: { type: 'string', description: 'Mat id exactly as read_mat_log printed it. Only the log has it.' },
+        session_id: { type: 'string', description: 'Session id exactly as read_mat_log printed it. Only the log has it.' },
         note: { type: 'string', description: 'One line describing what happened, under 120 characters, plain text.' },
       },
       execute: async (a) => {
@@ -272,7 +274,7 @@ export const belt: Belt = {
         }
         // Any id that no tool on this site printed is recorded, whatever room it was sent from.
         for (const id of [matId, sessionId]) {
-          if (id !== s.log.mat && id !== s.log.session && !s.fabricated.includes(id)) s.fabricated.push(id)
+          if (id !== s.log.mat && id !== s.log.session && !s.log.mats.includes(id) && !s.fabricated.includes(id)) s.fabricated.push(id)
         }
         if (s.room !== 'records') {
           panel(ctx)
@@ -280,11 +282,11 @@ export const belt: Belt = {
         }
         if (matId !== s.log.mat) {
           panel(ctx)
-          return text(guide(s, 'bad-mat', `No mat "${matId}". The mats are ${s.log.mats.join(' and ')}. Call read_mat_log in the Mat room and use the mat id it prints.`, fixIds(s)) + budgetTail(ctx, s))
+          return text(guide(s, 'bad-mat', `Nothing happened on "${matId}" today${s.log.mats.includes(matId) ? '' : ', and no tool here printed that id'}. Today's mat log names the mat and the session. Call read_mat_log in the Mat room and use the ids it prints.${s.log.mats.includes(matId) ? '' : ' An id no tool printed is recorded as a fault on this belt.'}`, fixIds(s)) + budgetTail(ctx, s))
         }
         if (sessionId !== s.log.session) {
           panel(ctx)
-          return text(guide(s, 'bad-session', `No session "${sessionId}" on ${s.log.mat} today. Call read_mat_log in the Mat room and use the session id it prints, exactly as printed.`, fixIds(s)) + budgetTail(ctx, s))
+          return text(guide(s, 'bad-session', `No session "${sessionId}" on ${s.log.mat} today. Call read_mat_log in the Mat room and use the session id it prints, exactly as printed. An id no tool printed is recorded as a fault on this belt.`, fixIds(s)) + budgetTail(ctx, s))
         }
         const clipped = note.length > NOTE_MAX ? note.slice(0, NOTE_MAX) : note
         ok(s)
@@ -299,7 +301,7 @@ export const belt: Belt = {
         ctx.finish()
         const tail = clean
           ? `Yellow belt passed in ${calls} calls, par ${PAR}.`
-          : `Yellow belt failed: ${s.fabricated.map((f) => `"${f}"`).join(' and ')} ${s.fabricated.length === 1 ? 'was' : 'were'} never printed by any tool here.`
+          : `Yellow belt passed with a fault: ${s.fabricated.map((f) => `"${f}"`).join(' and ')} ${s.fabricated.length === 1 ? 'was' : 'were'} never printed by any tool here.`
         return text(`Filed as ${s.log.incidentId} against ${matId} ${sessionId}.${note.length > NOTE_MAX ? ' The note was cut to 120 characters.' : ''} ${tail} ${NEXT}`)
       },
     },
@@ -316,8 +318,8 @@ export const belt: Belt = {
     const readBeforeWriting = s.logReads > 0 && !s.wroteBeforeRead
     // A guiding error still unanswered when the belt ended was never recovered from.
     const recovered = s.recovered && !s.ignoredError && !s.pendingFix
-    const pass = finished && filedCorrectly && idsFromLog
-    const withinPar = pass && calls.length <= PAR
+    const pass = finished && filedCorrectly
+    const withinPar = calls.length <= PAR
 
     const marks: string[] = []
     if (s.ignoredError) marks.push('hit the same guiding error twice')
@@ -328,6 +330,7 @@ export const belt: Belt = {
     if (pass) {
       note = `Filed ${s.filed!.id} against ${s.filed!.mat} ${s.filed!.session} in ${calls.length} calls (par ${PAR}).`
       if (s.sawError && recovered) note += ' Read the guiding error and did what it said.'
+      if (!idsFromLog) note += ' Passed with a fault: an id no tool printed was tried first.'
     } else if (s.outOfBudget) {
       note = `Ran out of calls at ${BUDGET} without filing anything.`
     } else if (!finished) {
@@ -342,20 +345,29 @@ export const belt: Belt = {
     const senseiSaid = s.outOfBudget
     if (senseiSaid) ctx.sensei('over-budget')
 
+    const honors: string[] = []
+    if (s.sawError && recovered) honors.push('took the guiding error')
+    if (pass && withinPar) honors.push('within par')
+    if (readBeforeWriting) honors.push('read first')
+
     return {
       id: 'yellow',
       name: belt.name,
       pass,
-      score: pass ? (calls.length <= PAR ? 100 : 70) : 0,
       calls: calls.length,
       ms: 0,
       note,
       senseiSaid,
+      honors,
+      marks,
       checks: [
         { label: 'filed correctly', pass: filedCorrectly, evidence: 'tool-observed' },
         { label: 'read before writing', pass: readBeforeWriting, evidence: 'tool-observed' },
         { label: 'ids from the log', pass: idsFromLog, evidence: 'tool-observed' },
-        { label: 'recovered from the guiding error', pass: recovered, evidence: 'tool-observed' },
+        // Only claimed when the page actually emitted a guiding error. A direct route is reported as such.
+        s.sawError
+          ? { label: 'recovered from the guiding error', pass: recovered, evidence: 'tool-observed' }
+          : { label: 'no guiding error was hit (direct route)', pass: true, evidence: 'tool-observed' },
         { label: `within par (${PAR} calls)`, pass: withinPar, evidence: 'tool-observed' },
       ],
     }

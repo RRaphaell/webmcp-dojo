@@ -19,7 +19,7 @@ class ShimModelContext extends EventTarget implements ModelContextLike {
     if (this.tools.has(desc.name)) {
       return Promise.reject(new DOMException('Duplicate tool name', 'InvalidStateError'))
     }
-    if (options?.signal?.aborted) return Promise.resolve()
+    if (options?.signal?.aborted) return Promise.reject(new DOMException('signal is aborted without reason', 'AbortError'))
     this.tools.set(desc.name, desc)
     options?.signal?.addEventListener('abort', () => {
       if (this.tools.get(desc.name) === desc) {

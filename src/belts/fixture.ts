@@ -66,11 +66,3 @@ export function studentById(w: World, id: string): Student | undefined {
   return w.students.find((s) => s.id === id)
 }
 
-/** Deterministic 5-char seal code for the brown belt, from the seed. Only ever computed inside the human reveal path. */
-export function sealCode(seed: number): string {
-  const r = rng(seed ^ 0x5ea1)
-  const alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
-  let s = ''
-  for (let i = 0; i < 5; i++) s += alphabet[Math.floor(r() * alphabet.length)]
-  return s
-}

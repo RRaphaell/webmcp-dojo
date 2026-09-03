@@ -28,8 +28,6 @@ export interface BeltResult {
   id: string
   name: string
   pass: boolean
-  /** 0-100, the belt's own scale. */
-  score: number
   calls: number
   ms: number
   /** Short, concrete, human-readable verdict line. */
@@ -113,6 +111,9 @@ export interface Belt {
   grade: (ctx: BeltContext, finished: boolean) => BeltResult
   /** Human-facing instructions the belt wants shown before the agent starts. */
   briefing: string
+  /** Printed on the report card when the belt fails: one thing the person can do, one thing a site owner can do. */
+  fixPerson: string
+  fixOwner: string
   /** Brown only: returns the revealed clue for the human side (null until the human has revealed it). */
   readClue?: (ctx: BeltContext) => string | null
 }

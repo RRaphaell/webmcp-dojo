@@ -21,7 +21,7 @@ export async function run({ native }) {
     const st = await openYellow(b.page, srv.url)
     assert(/Yellow belt: the wrong room started/.test(st.text), 'start names the belt: ' + st.text)
     assert(/go_to_room/.test(st.text) && /read_mat_log/.test(st.text) && /file_incident/.test(st.text), 'start names the tools: ' + st.text)
-    assert(/Records room/.test(st.text), 'briefing says which room the belt opens in: ' + st.text)
+    assert(/go_to_room moves you/.test(st.text) && !/Records room/.test(st.text), 'briefing states the room rule without naming the room: ' + st.text)
 
     const tools = await listTools(b.page)
     const names = tools.map((t) => t.name).sort().join()
@@ -57,7 +57,7 @@ export async function run({ native }) {
     await callTool(b.page, 'go_to_room', { room: 'records' })
     // 7: right room, still a made up mat.
     const badMat = await callTool(b.page, 'file_incident', { mat_id: 'mat-x', session_id: 'sess-0000', note: 'ankle' })
-    assert(/No mat "mat-x"/.test(badMat.text) && /mat-a and mat-b/.test(badMat.text), 'unknown mat guides without printing the answer: ' + badMat.text)
+    assert(/Nothing happened on "mat-x" today, and no tool here printed that id/.test(badMat.text) && /read_mat_log in the Mat room/.test(badMat.text) && !/mat-b/.test(badMat.text), 'unknown mat guides without printing the answer: ' + badMat.text)
     assert(!/sess-\d{4}/.test(badMat.text), 'the error does not leak the session id: ' + badMat.text)
     // 8: the budget ends the belt whatever this call was.
     const last = await callTool(b.page, 'read_mat_log')
@@ -140,12 +140,13 @@ export async function run({ native }) {
     await callTool(b.page, 'go_to_room', { room: 'records' })
     await callTool(b.page, 'file_incident', { mat_id: 'mat-z', session_id: sessionId, note: 'ankle' })
     const late = await callTool(b.page, 'file_incident', { mat_id: matId, session_id: sessionId, note: 'ankle' })
-    assert(/Filed as inc-\d{4}/.test(late.text) && /Yellow belt failed/.test(late.text), 'filed, and still failed: ' + late.text)
+    assert(/Filed as inc-\d{4}/.test(late.text) && /Yellow belt passed with a fault/.test(late.text), 'filed, passed with a fault: ' + late.text)
     assert(/"mat-z" was never printed/.test(late.text), 'the verdict names the made up id: ' + late.text)
     state = await b.page.evaluate(() => window.dojo.state())
     r = state.results.find((x) => x.id === 'yellow')
-    assert(r.pass === false && check(r, 'filed correctly').pass === true, 'the filing landed but the belt did not: ' + JSON.stringify(r))
+    assert(r.pass === true && check(r, 'filed correctly').pass === true, 'the filing landed and the belt passed: ' + JSON.stringify(r))
     assert(check(r, 'ids from the log').pass === false, 'the made up id is on the record')
+    assert(r.marks.some((m) => /mat-z/.test(m)) && /Passed with a fault/.test(r.note), 'the fault is a mark and is in the note: ' + JSON.stringify(r))
     assert(check(r, 'read before writing').pass === true, 'it did read the log first')
     assert(check(r, 'recovered from the guiding error').pass === true, 'filing with the log ids is what the error asked for')
 
