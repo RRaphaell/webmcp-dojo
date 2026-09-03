@@ -18,8 +18,10 @@ export type Pattern =
 
 export type PendingHuman =
   | { kind: 'confirm'; prompt: string; detail?: string }
-  | { kind: 'answer'; prompt: string; hint: string }
-  | { kind: 'clue'; prompt: string }
+  /** The human must supply a value. `hint` is what the page knows the right answer to be (only the human side sees it). `control` is a CSS selector for the human-only control that records the disclosure, if the belt renders one. */
+  | { kind: 'answer'; prompt: string; hint: string; control?: string }
+  /** The human must read something only they can see (Brown). `control` is the selector of the element to press and hold. */
+  | { kind: 'clue'; prompt: string; control?: string; holdMs?: number }
   | null
 
 export interface BeltResult {
@@ -53,14 +55,20 @@ export interface BeltContext {
   pending: () => PendingHuman
   /** The human's latest response to askHuman: true/false for confirm, a string for answer, null if none yet. */
   humanAnswer: () => string | boolean | null
+  /** Free text the human typed when rejecting a confirm (empty if none). */
+  humanReason: () => string
   /** Clear the recorded human answer (after consuming it). */
   clearHumanAnswer: () => void
   /** Mark the belt finished; the runtime computes the result via belt.grade(). */
   finish: () => void
   /** Deterministic seed for the run (from URL or random), so evals can replay. */
   seed: number
-  /** Update the human-visible belt panel (HTML string, already escaped by the belt). */
-  render: (html: string) => void
+  /**
+   * Update the human-visible belt panel (HTML string, already escaped by the belt).
+   * `bind` runs after the HTML is in the document, with the panel root, so the belt can
+   * attach real event handlers (isTrusted clicks, pointer holds) to human-only controls.
+   */
+  render: (html: string, bind?: (root: HTMLElement) => void) => void
   /** Show a transient status line to the human. */
   say: (line: string) => void
   /** Speak one sensei line for an event (deterministic). Belts call it for their specific verdicts. */
@@ -90,22 +98,25 @@ export interface Belt {
   grade: (ctx: BeltContext, finished: boolean) => BeltResult
   /** Human-facing instructions the belt wants shown before the agent starts. */
   briefing: string
+  /** Brown only: returns the revealed clue for the human side (null until the human has revealed it). */
+  readClue?: (ctx: BeltContext) => string | null
 }
 
-export type Rank = 'white' | 'yellow' | 'orange' | 'green' | 'blue' | 'brown' | 'black'
+export type Rank = 'unranked' | 'white' | 'yellow' | 'orange' | 'green' | 'blue' | 'brown' | 'black'
 
-export function rankFor(results: BeltResult[]): { rank: Rank; label: string } {
-  const passed = results.filter((r) => r.pass).length
-  const table: [number, Rank, string][] = [
-    [0, 'white', 'White belt'],
-    [1, 'yellow', 'Yellow belt'],
-    [2, 'orange', 'Orange belt'],
-    [3, 'green', 'Green belt'],
-    [4, 'blue', 'Blue belt'],
-    [6, 'brown', 'Brown belt'],
-    [8, 'black', 'Black belt'],
-  ]
-  let out = table[0]
-  for (const row of table) if (passed >= row[0]) out = row
-  return { rank: out[1], label: out[2] }
+const LADDER: Rank[] = ['white', 'yellow', 'orange', 'green', 'blue', 'brown', 'black']
+
+/**
+ * The ladder rule: a belt is only worth what is under it. The rank is the
+ * highest belt for which that belt and every belt below it were passed.
+ * Passes above a failure are reported separately ("also cleared").
+ */
+export function rankFor(results: BeltResult[]): { rank: Rank; label: string; alsoCleared: string[] } {
+  const passed = new Set(results.filter((r) => r.pass).map((r) => r.id))
+  let rank: Rank = 'unranked'
+  for (const b of LADDER) { if (passed.has(b)) rank = b; else break }
+  const rankIndex = LADDER.indexOf(rank as (typeof LADDER)[number])
+  const alsoCleared = LADDER.filter((b, i) => i > rankIndex && passed.has(b))
+  const label = rank === 'unranked' ? 'Unranked' : rank[0].toUpperCase() + rank.slice(1) + ' belt'
+  return { rank, label, alsoCleared }
 }

@@ -56,6 +56,8 @@ export async function boot(engine: EngineKind): Promise<void> {
       renderLobby(stage, rt, s.results)
     } else if (s.phase === 'belt') {
       renderBelt(stage, rt, s.currentBelt!, s.beltPanel, s.pendingHuman, s.status, s.results)
+      const panelRoot = stage.querySelector<HTMLElement>('#belt-panel')
+      if (panelRoot && s.beltPanelBind) s.beltPanelBind(panelRoot)
     } else {
       renderReport(stage, rt.card(), rt, false)
     }
@@ -112,14 +114,14 @@ function renderBelt(stage: HTMLElement, rt: DojoRuntime, beltId: string, panel: 
       <div class="share" style="margin-top:14px"><button class="btn ghost small" id="skip">Skip this belt</button><span class="muted mono">${results.length} done</span></div>
     </div>`
   stage.querySelector('#skip')?.addEventListener('click', () => rt.skipCurrent())
-  stage.querySelector('#h-yes')?.addEventListener('click', () => rt.humanConfirm(true))
-  stage.querySelector('#h-no')?.addEventListener('click', () => rt.humanConfirm(false))
+  stage.querySelector('#h-yes')?.addEventListener('click', (e) => { if (e.isTrusted || (window as unknown as { __dojoAllowSynthetic?: boolean }).__dojoAllowSynthetic) rt.humanConfirm(true) })
+  stage.querySelector('#h-no')?.addEventListener('click', (e) => { if (!(e.isTrusted || (window as unknown as { __dojoAllowSynthetic?: boolean }).__dojoAllowSynthetic)) return; const reason = (stage.querySelector('#h-reason') as HTMLInputElement | null)?.value ?? ''; rt.humanConfirm(false, reason) })
   const form = stage.querySelector<HTMLFormElement>('#h-form')
   form?.addEventListener('submit', (e) => { e.preventDefault(); rt.humanAnswer((form.querySelector('input') as HTMLInputElement).value) })
 }
 
 function renderPending(p: NonNullable<ReturnType<DojoRuntime['publicState']>['pendingHuman']>): string {
-  if (p.kind === 'confirm') return `<div class="human-box"><div class="label">Your call</div><div>${esc(p.prompt)}</div>${p.detail ? `<div class="mono muted" style="margin-top:6px">${esc(p.detail)}</div>` : ''}<div class="actions"><button class="btn" id="h-yes">Approve</button><button class="btn ghost" id="h-no">Reject</button></div></div>`
+  if (p.kind === 'confirm') return `<div class="human-box"><div class="label">Only you can do this</div><div>${esc(p.prompt)}</div>${p.detail ? `<div class="mono muted" style="margin-top:6px">${esc(p.detail)}</div>` : ''}<div class="actions"><button class="btn" id="h-yes">Approve</button><input type="text" id="h-reason" placeholder="reason, if you reject" autocomplete="off"><button class="btn ghost" id="h-no">Reject</button></div></div>`
   if (p.kind === 'answer') return `<div class="human-box"><div class="label">Your agent needs something from you</div><div>${esc(p.prompt)}</div><form class="actions" id="h-form"><input type="text" placeholder="type it here" autocomplete="off"><button class="btn" type="submit">Send</button></form></div>`
   return `<div class="human-box"><div class="label">Only you can see this</div><div>${esc(p.prompt)}</div></div>`
 }

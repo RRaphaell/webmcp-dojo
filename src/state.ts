@@ -17,6 +17,8 @@ export interface DojoState {
   pendingHuman: PendingHuman
   /** Human-visible panel for the current belt (HTML). */
   beltPanel: string
+  /** Attach handlers to the rendered panel (set by the belt via ctx.render). */
+  beltPanelBind: ((root: HTMLElement) => void) | null
   status: string
   /** Latest sensei line (deterministic, see sensei.ts). */
   sensei: string
@@ -34,7 +36,7 @@ export class Store {
   constructor(engine: EngineKind) {
     this.state = {
       engine, phase: 'lobby', agentAttached: false, currentBelt: null, beltStartedAt: null,
-      results: [], feed: [], pendingHuman: null, beltPanel: '', status: '', sensei: '', agentName: '', limitTo: null,
+      results: [], feed: [], pendingHuman: null, beltPanel: '', beltPanelBind: null, status: '', sensei: '', agentName: '', limitTo: null,
     }
   }
 

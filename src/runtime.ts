@@ -20,8 +20,9 @@ export class DojoRuntime {
   readonly registry = new ToolRegistry()
   readonly store: Store
   private belts: Belt[]
-  private current: { belt: Belt; ctx: BeltContext; startedAt: number; startCallIndex: number; finished: boolean } | null = null
+  private current: { belt: Belt; ctx: BeltContext; startedAt: number; startCallIndex: number; finished: boolean; finishPending: boolean } | null = null
   private humanAnswerValue: string | boolean | null = null
+  private humanReasonValue = ''
   private seed: number
 
   constructor(readonly engine: EngineKind, belts: Belt[]) {
@@ -30,11 +31,14 @@ export class DojoRuntime {
     const params = new URLSearchParams(location.search)
     this.seed = Number(params.get('seed')) || Math.floor(Math.random() * 1e9)
     this.registry.keepPrevious = params.get('compat') === '1'
+    if (params.get('quick') === '1') this.store.set({ limitTo: ['green', 'blue', 'brown'] })
     this.registry.on((ev) => {
       if (ev.type === 'call') {
         const first = !this.store.state.agentAttached
         this.store.push(ev.record)
         if (first) this.sensei('attached')
+        // A belt that finished from inside a tool call is graded now, after that call is on the record.
+        if (this.current?.finishPending && this.registry.inFlight === 0) this.finishBelt(true)
       }
     })
   }
@@ -125,15 +129,23 @@ export class DojoRuntime {
       askHuman: (req) => this.askHuman(req),
       pending: () => this.store.state.pendingHuman,
       humanAnswer: () => this.humanAnswerValue,
-      clearHumanAnswer: () => { this.humanAnswerValue = null },
-      finish: () => { if (self.current?.belt === belt && !self.current.finished) self.finishBelt(true) },
+      humanReason: () => this.humanReasonValue,
+      clearHumanAnswer: () => { this.humanAnswerValue = null; this.humanReasonValue = '' },
+      finish: () => {
+        const cur = self.current
+        if (!cur || cur.belt !== belt || cur.finished) return
+        if (self.registry.inFlight > 0) cur.finishPending = true
+        else self.finishBelt(true)
+      },
       seed: this.seed,
-      render: (html) => this.store.set({ beltPanel: html }),
+      render: (html, bind) => this.store.set({ beltPanel: html, beltPanelBind: bind ?? null }),
       say: (line) => this.store.set({ status: line }),
       sensei: (event) => this.sensei(event),
     }
-    this.current = { belt, ctx, startedAt, startCallIndex, finished: false }
-    this.store.set({ phase: 'belt', currentBelt: belt.id, beltStartedAt: Date.now(), beltPanel: '', status: '', pendingHuman: null })
+    this.current = { belt, ctx, startedAt, startCallIndex, finished: false, finishPending: false }
+    this.humanAnswerValue = null
+    this.humanReasonValue = ''
+    this.store.set({ phase: 'belt', currentBelt: belt.id, beltStartedAt: Date.now(), beltPanel: '', beltPanelBind: null, status: '', pendingHuman: null })
     await this.registry.activate(belt.id, belt.tools(ctx))
     belt.start(ctx)
   }
@@ -142,6 +154,7 @@ export class DojoRuntime {
     const cur = this.current
     if (!cur || cur.finished) return
     cur.finished = true
+    cur.finishPending = false
     const result = cur.belt.grade(cur.ctx, finished)
     result.ms = Math.round(performance.now() - cur.startedAt)
     result.calls = cur.ctx.calls().length
@@ -190,7 +203,7 @@ export class DojoRuntime {
     this.store.set({ pendingHuman: req })
   }
 
-  humanConfirm(approve: boolean): void { this.humanAnswerValue = approve; this.store.set({ pendingHuman: null }) }
+  humanConfirm(approve: boolean, reason = ''): void { this.humanAnswerValue = approve; this.humanReasonValue = approve ? '' : reason; this.store.set({ pendingHuman: null }) }
   humanAnswer(value: string): void { this.humanAnswerValue = value; this.store.set({ pendingHuman: null }) }
 
   /** Restart everything (human action). */
@@ -198,7 +211,7 @@ export class DojoRuntime {
     this.abandonCurrent()
     this.current = null
     this.registry.clear()
-    this.store.set({ phase: 'lobby', currentBelt: null, results: [], feed: [], pendingHuman: null, beltPanel: '', status: '' })
+    this.store.set({ phase: 'lobby', currentBelt: null, results: [], feed: [], pendingHuman: null, beltPanel: '', beltPanelBind: null, status: '', sensei: '' })
     history.replaceState(null, '', location.pathname)
   }
 
@@ -213,10 +226,10 @@ export class DojoRuntime {
       feed: () => rt.store.state.feed.map(publicCall),
       belts: () => rt.belts.map((b) => ({ id: b.id, name: b.name, tests: b.tests, pattern: b.pattern, asymmetric: b.asymmetric, parCalls: b.parCalls })),
       human: {
-        confirm: (approve: boolean) => rt.humanConfirm(!!approve),
+        confirm: (approve: boolean, reason = '') => rt.humanConfirm(!!approve, String(reason ?? '')),
         answer: (value: string) => rt.humanAnswer(String(value)),
         answerHint: () => { const p = rt.store.state.pendingHuman; return p && p.kind === 'answer' ? p.hint : null },
-        readClue: () => rt.current?.belt.id ? (window as unknown as { __dojoClue?: () => string }).__dojoClue?.() ?? null : null,
+        readClue: () => (rt.current && !rt.current.finished ? rt.current.belt.readClue?.(rt.current.ctx) ?? null : null),
         limitBelts: (ids: string[]) => rt.store.set({ limitTo: ids }),
         skip: () => rt.skipCurrent(),
         reset: () => rt.reset(),

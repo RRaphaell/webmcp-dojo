@@ -82,6 +82,7 @@ p { margin: 0 0 12px; }
 .panel .rows { display: grid; gap: 6px; font-family: var(--mono); font-size: 13.5px; }
 .panel .row { display: grid; grid-template-columns: auto 1fr; gap: 12px; }
 .panel .row .k { color: var(--muted); }
+.panel .row.read { color: var(--green-ink); }
 .human-box { margin-top: 16px; border: 1px solid var(--ink); border-radius: var(--radius-lg); padding: 14px 16px; background: var(--wash); }
 .human-box .label { font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--green-ink); margin-bottom: 6px; }
 .human-box .actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }

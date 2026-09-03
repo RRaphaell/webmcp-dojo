@@ -39,6 +39,14 @@ export async function launch({ native = true, headless = true } = {}) {
   const browser = await chromium.launch({ channel: 'chrome', headless, args })
   const context = await browser.newContext({ viewport: { width: 1280, height: 860 }, colorScheme: 'light' })
   const page = await context.newPage()
+  if (process.env.DOJO_TRACE) {
+    await page.addInitScript(() => {
+      window.__dojoTrace = true
+      const orig = AbortController.prototype.abort
+      AbortController.prototype.abort = function (...a) { console.log('[trace] abort from: ' + new Error().stack.split('\n').slice(2, 6).map((l) => l.trim()).join(' <- ')); return orig.apply(this, a) }
+    })
+    page.on('console', (m) => { if (m.text().startsWith('[trace]')) console.log('    ' + m.text().slice(0, 500)) })
+  }
   const consoleErrors = []
   page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(m.text()) })
   page.on('pageerror', (e) => consoleErrors.push('pageerror: ' + e.message))
@@ -67,6 +75,7 @@ export async function callTool(page, name, args = {}) {
       return await callToolOnce(page, name, args)
     } catch (e) {
       lastErr = e
+      if (process.env.DOJO_DEBUG) console.log(`    [retry ${attempt}] ${name}: ${String(e.message).split('\n')[0]}`)
       if (!/unknown transient reason/i.test(String(e.message))) throw e
       await new Promise((r) => setTimeout(r, 60 * (attempt + 1)))
     }

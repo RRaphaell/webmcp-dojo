@@ -21,11 +21,19 @@ export interface ToolCallRecord {
   readOnly: boolean
 }
 
+export interface ParamSpec {
+  type: 'string' | 'number' | 'integer' | 'boolean' | 'array'
+  description: string
+  enum?: string[]
+  /** For type 'array': the item type. */
+  items?: { type: 'string' | 'number' | 'integer' | 'boolean' }
+}
+
 export interface ToolSpec {
   name: string
   title?: string
   description: string
-  params?: Record<string, { type: 'string' | 'number' | 'integer' | 'boolean'; description: string; enum?: string[] }>
+  params?: Record<string, ParamSpec>
   required?: string[]
   annotations?: ToolAnnotations
   execute: (args: Record<string, unknown>) => Promise<ToolResult> | ToolResult
@@ -55,7 +63,7 @@ export function toSchema(spec: ToolSpec): JsonSchema {
   for (const [k, v] of Object.entries(spec.params ?? {})) {
     if (!NAME_RE.test(k)) throw new Error(`param name ${spec.name}.${k} must be 1-30 chars of [A-Za-z0-9_.-]`)
     if (v.description.length > BUDGET.paramDescription) throw new Error(`param ${spec.name}.${k} description over ${BUDGET.paramDescription} chars`)
-    properties[k] = { type: v.type, description: v.description, ...(v.enum ? { enum: v.enum } : {}) }
+    properties[k] = { type: v.type, description: v.description, ...(v.enum ? { enum: v.enum } : {}), ...(v.type === 'array' ? { items: v.items ?? { type: 'string' } } : {}) }
   }
   return { type: 'object', properties, required: spec.required ?? Object.keys(properties), additionalProperties: false }
 }
@@ -68,6 +76,8 @@ export class ToolRegistry {
   private listeners = new Set<Listener>()
   private seq = 0
   currentSet = ''
+  /** Number of tool executions currently in progress. */
+  inFlight = 0
   /** Escape hatch (?compat=1): never unregister previous belt sets, in case an agent runtime does not re-read tools mid-conversation. */
   keepPrevious = false
   private retired: ActiveTool[] = []
@@ -154,6 +164,7 @@ export class ToolRegistry {
     const id = ++this.seq
     const startedAt = performance.now()
     const readOnly = !!spec.annotations?.readOnlyHint
+    this.inFlight++
     try {
       const result = await spec.execute(args)
       const first = result.content?.[0]?.text ?? ''
@@ -161,11 +172,13 @@ export class ToolRegistry {
         result.content[0].text = first.slice(0, BUDGET.output - 1) + '…'
       }
       const ms = performance.now() - startedAt
+      this.inFlight--
       this.emit({ type: 'call', record: { id, set, tool: spec.name, args, startedAt, ms, ok: !result.isError, summary: clip(result.content?.[0]?.text ?? ''), result, readOnly } })
       return result
     } catch (err) {
       const ms = performance.now() - startedAt
       const message = err instanceof Error ? err.message : String(err)
+      this.inFlight--
       this.emit({ type: 'call', record: { id, set, tool: spec.name, args, startedAt, ms, ok: false, summary: clip(message), error: message, readOnly } })
       // Guiding errors: never throw at the engine; return a message the agent can act on.
       return { content: [{ type: 'text', text: message }], isError: true }
