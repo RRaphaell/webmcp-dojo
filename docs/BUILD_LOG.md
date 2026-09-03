@@ -78,3 +78,8 @@ Running record of what was done, why, and what is open. Newest at the bottom. Ti
 - Google's `webmcp-evals` CLI runs our files unmodified. `smoke` (deterministic replay, no model) needed two things: concrete arguments (generated into `evals/dojo.smoke.json` from a real seed-7 run) and every tool present from page load, because the CLI reads the tool list once per case. Added `?static=1`: all 24 tools registered at load, belt tools gated to the active belt with a guiding message. **Official smoke: 33/33 steps across 7 cases.** Static mode is also the fallback if ChatGPT turns out not to re-read tools mid-conversation.
 - Official `local` mode (no browser) uses `mockOutput`; filled from real page outputs, order-aware for repeated tool names.
 - Our suite mode (real Chrome + ported official scoring): Opus 5 30/34 steps (88.2%) on the first case file; the white case's prompt told the agent to ask before submitting, which it did, so the case was reworded.
+
+## Sep 3, 01:35-01:40 - evals complete, review running
+- Real-browser suite with the ported official scorer: Claude Opus 5, seed 7, 34/36 steps (94.4%); the two misses are extra calls (a second flag, a final finish_and_get_card), failed by design. Ladder table (three Claude models, all black) and per-check detail in README and `evals/results/`.
+- Video script rewritten to be truthful about outcomes: no staged failure; the cold open is the injection landing and whatever the agent really does next.
+- Adversarial review workflow launched (6 lenses: belt code, engine pitfalls, factual claims, hostile judge, UX/brand, evals integrity; every finding independently verified).
