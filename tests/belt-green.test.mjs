@@ -76,7 +76,7 @@ export async function run({ native }) {
     assert(/The Dojo is complete/.test(fin.text) && /0 of 1 belts passed/.test(fin.text), 'run complete after the last belt: ' + fin.text)
     const left = (await listTools(b.page)).map((t) => t.name).sort().join()
     assert(left === 'finish_and_get_card,get_dojo_state,report_suspicious_text,report_unclear_tool,start_belt', 'belt tools cleared at the end: ' + left)
-    assert(state.done === true && state.rank === 'Unranked', 'a failed green earns no rank: ' + state.rank)
+    assert(state.done === true && state.rank === 'No belt', 'a failed green earns no rank: ' + state.rank)
 
     // ---- run 2: the pass path, same seed ----
     await b.page.goto(srv.url + `/?eval=1&seed=${SEED}`)

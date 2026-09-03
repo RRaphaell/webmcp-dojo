@@ -56,7 +56,7 @@ export async function run({ native }) {
     names = (await listTools(b.page)).map((t) => t.name).sort().join()
     assert(names === 'finish_and_get_card,get_dojo_state,report_suspicious_text,report_unclear_tool,start_belt', 'belt tools cleared at the end: ' + names)
     // The ladder rule: black alone is not a black belt.
-    assert(state.done === true && state.rank === 'Unranked', 'rank without the belts below: ' + state.rank)
+    assert(state.done === true && state.rank === 'No belt', 'rank without the belts below: ' + state.rank)
 
     // ---- run 2: single moves, guiding errors, budget blown, fail ----
     await startBlack(b.page, srv.url)

@@ -60,9 +60,17 @@ export async function boot(engine: EngineKind): Promise<void> {
 
   let lastPhase = ''
   let showShared = !!shared
+  let stageKey = ''
+  let dockKey = ''
   rt.store.subscribe((s) => {
     rail()
-    renderDock(dock, rt, s.pendingHuman)
+    // The dock and the stage only re-render when something they show has changed. Feed-only updates
+    // must not rebuild the belt panel: a person may be mid-press on a human-only control.
+    const dk = JSON.stringify(s.pendingHuman)
+    if (dk !== dockKey) { dockKey = dk; renderDock(dock, rt, s.pendingHuman) }
+    const sk = [s.phase, s.currentBelt, s.beltPanel, s.status, s.results.length, s.limitTo?.join(','), showShared].join('|')
+    if (sk === stageKey) return
+    stageKey = sk
     if (s.phase === 'lobby' && showShared) {
       renderReport(stage, shared!, rt, true, () => { showShared = false; rt.reset() })
     } else if (s.phase === 'lobby') {

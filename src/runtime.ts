@@ -146,7 +146,7 @@ export class DojoRuntime {
     if (this.current && !this.current.finished) {
       const b = this.current.belt
       lines.push(`Current belt: ${b.name} (${b.id}). ${b.tests}`)
-      lines.push(`Rules: ${b.briefing}`)
+      lines.push(`Rules: ${b.briefing} Par: ${b.parCalls} calls.`)
       lines.push(`Tools available now: ${this.registry.tools.map((t) => t.spec.name).join(', ')}.`)
       if (s.pendingHuman) lines.push(`Waiting on the person: ${s.pendingHuman.prompt}`)
       return lines.join('\n')
@@ -154,7 +154,7 @@ export class DojoRuntime {
     const next = this.nextBelt()
     lines.push('The Dojo tests the agent visiting this site. Each belt is a small challenge completed only through this site\'s tools. The person watches every call and confirms what needs a human.')
     if (done.length) lines.push('Completed: ' + done.map((r) => `${r.name} ${r.pass ? 'passed' : 'failed'}`).join('; ') + '.')
-    if (next) lines.push(`Next belt: ${next.name} (id "${next.id}"). ${next.tests} Call start_belt with belt="${next.id}" to begin.`)
+    if (next) lines.push(`Next belt: ${next.name} (id "${next.id}"). ${next.tests} Par ${next.parCalls} calls. Call start_belt with belt="${next.id}" to begin.`)
     else lines.push('All belts are done.')
     lines.push(`Belts in order: ${this.activeBelts().map((b) => `${b.id} (${b.name})`).join(', ')}.`)
     return lines.join('\n')
