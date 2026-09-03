@@ -2,7 +2,7 @@
 
 **A website that tests the agent visiting it.**
 
-Live: **https://webmcp-dojo.billowing-frost-066e.workers.dev** · Built for the [OpenAI WebMCP Challenge](https://webmcp.devpost.com/) (Aug 25 to Sep 3, 2026) by [Raphael Kalandadze](https://x.com/RaphaelKalan). MIT.
+Live: **https://webmcp-dojo.billowing-frost-066e.workers.dev** (fallback mirror: https://rraphaell.github.io/webmcp-dojo/) · Built for the [OpenAI WebMCP Challenge](https://webmcp.devpost.com/) (Aug 25 to Sep 3, 2026) by [Raphael Kalandadze](https://x.com/RaphaelKalan). MIT.
 
 > A person and their agent can now find out together what the agent is actually good at, on a real site, in one sitting. That was impossible before, because no page could hand an arbitrary visiting agent a task and watch how it used it.
 
@@ -148,6 +148,8 @@ Two honest notes on those numbers. The CLI reads a page's tool list once per cas
 **Budgets.** `npm run evals:budget` walks every belt on the live page and asserts Chrome's four limits on all 24 tools: longest name 22/30, longest description 304/500, longest parameter description 106/150, zero violations.
 
 ## Works without an agent
+
+**Watch a recorded run.** The lobby has a button that replays a real transcript (Claude Opus 5 taking all seven belts in real Chrome, seed 7) against the live page. Every call executes for real through the same registry the agent hit, the human's actions run through the same hooks the buttons call, and the run ends on the real card in about forty seconds. It is labelled as a recording the whole time. The seal code is generated fresh under the replayed hold, exactly as it would be for a person, and the replayed human relays the new one.
 
 The dojo is a small school admin panel a person can read with the mouse: classes, rosters, the mat log, the records shelf, the signup draft, the member messages, the crate and its seal, the waitlist. The tools panel lists every registered tool with its description, schema and annotations, and runs any of them by hand through the same registry the agent hits. Open Mat, at the bottom of the panel, lints your own tool definitions against the budgets above with no agent and no WebMCP support at all. Nothing pasted there is registered, executed or rendered as HTML.
 

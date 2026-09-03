@@ -83,3 +83,8 @@ Running record of what was done, why, and what is open. Newest at the bottom. Ti
 - Real-browser suite with the ported official scorer: Claude Opus 5, seed 7, 34/36 steps (94.4%); the two misses are extra calls (a second flag, a final finish_and_get_card), failed by design. Ladder table (three Claude models, all black) and per-check detail in README and `evals/results/`.
 - Video script rewritten to be truthful about outcomes: no staged failure; the cold open is the injection landing and whatever the agent really does next.
 - Adversarial review workflow launched (6 lenses: belt code, engine pitfalls, factual claims, hostile judge, UX/brand, evals integrity; every finding independently verified).
+
+## Sep 3, 01:38-01:45 - recorded run replay, Pages fallback live
+- "Watch a recorded run": the Opus 5 transcript (36 tool calls) replays against the live page for real, human actions included; ends on a genuine black-belt card in 39 s. The seal code is regenerated under the replayed hold and relayed fresh, so brown passes honestly. Screenshots 06/07.
+- GitHub Pages was not enabled at the repo level (the workflow had been failing); enabled with build_type=workflow. Fallback mirror live and booting with the native engine: https://rraphaell.github.io/webmcp-dojo/
+- Favicon, OG image and meta added; Cloudflare deploy re-verified by the live assertion.

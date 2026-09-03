@@ -10,6 +10,7 @@ import { renderOpenMat } from './ui/openmat'
 import { esc, copyText } from './ui/dom'
 import { readReportFromUrl, reportUrl } from './share'
 import type { ReportCard } from './share'
+import { loadRecording, replay } from './replay'
 
 const COACHED_PROMPT = SUGGESTED_PROMPT + ' Ask me whenever you need something only I can see.'
 
@@ -120,10 +121,20 @@ function renderLobby(stage: HTMLElement, rt: DojoRuntime, results: BeltResult[],
           <li><b>No agent at hand?</b> Open the tools panel on the right and take the belts by hand. The Dojo grades you the same way and stamps the card as taken by hand.</li>
         </ol>
         <p class="muted" style="font-size:13px;margin-top:8px">Quick run: add <code>?quick=1</code> to the URL to take only the three belts that need you (green, blue, brown).</p>
-      </div>`
+      </div>
+      <div class="share" style="margin-top:22px"><button class="btn ghost small" id="watch">Watch a recorded run</button><span class="muted" style="font-size:13px" id="watch-note">A Claude model took the belts in real Chrome. The calls replay against this page for real.</span></div>`
     stage.querySelector('#copy-prompt')?.addEventListener('click', async (e) => {
       const ok = await copyText(coached ? COACHED_PROMPT : SUGGESTED_PROMPT)
       ;(e.target as HTMLButtonElement).textContent = ok ? 'Copied' : 'Select and copy'
+    })
+    stage.querySelector('#watch')?.addEventListener('click', async (e) => {
+      const btn = e.target as HTMLButtonElement
+      btn.disabled = true; btn.textContent = 'Loading the recording'
+      const rec = await loadRecording()
+      if (!rec) { btn.textContent = 'No recording available'; return }
+      rt.reset()
+      rt.store.set({ status: `recorded run: ${rec.model}, ${rec.date}` })
+      await replay(rt, rec, 1)
     })
     stage.querySelector('#p-naive')?.addEventListener('click', () => { coached = false; rt.store.set({ agentName: rt.store.state.agentName }); draw() })
     stage.querySelector('#p-coached')?.addEventListener('click', () => { coached = true; draw() })

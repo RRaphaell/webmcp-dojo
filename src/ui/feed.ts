@@ -8,7 +8,7 @@ import type { EngineKind } from '../webmcp/shim'
 import { esc, fmtArgs, fmtMs } from './dom'
 
 export interface FeedEvent {
-  kind: 'human' | 'check' | 'toolchange' | 'sensei' | 'safety'
+  kind: 'human' | 'check' | 'toolchange' | 'sensei' | 'safety' | 'agent'
   at: number
   text: string
   pass?: boolean
@@ -107,5 +107,6 @@ function eventRow(e: FeedEvent): string {
   if (e.kind === 'check') return `<div class="ev check ${e.pass ? 'pass' : 'fail'}"><span class="mono muted">check</span> ${esc(e.text)} <b>${e.pass ? 'PASS' : 'FAILED'}</b></div>`
   if (e.kind === 'toolchange') return `<div class="ev toolchange">${esc(e.text)}</div>`
   if (e.kind === 'safety') return `<div class="ev safety">${esc(e.text)}</div>`
+  if (e.kind === 'agent') return `<div class="ev agent">${esc(e.text)}</div>`
   return `<div class="ev sensei">${esc(e.text)}</div>`
 }

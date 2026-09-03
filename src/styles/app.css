@@ -179,6 +179,8 @@ p { margin: 0 0 12px; }
 .ev.sensei { color: var(--green-ink); border-left-color: var(--green); }
 .ev.sensei::before { content: 'sensei: '; color: var(--faint); }
 .ev.safety { color: var(--purple); border-left-color: var(--purple); font-weight: 700; }
+.ev.agent { font-family: var(--sans); font-style: italic; color: var(--muted); border-left-color: var(--line); }
+.ev.agent::before { content: 'agent  '; font-family: var(--mono); font-style: normal; color: var(--faint); letter-spacing: 0.1em; }
 .feed-foot { font-size: 11.5px; color: var(--muted); padding: 8px 4px 2px; border-top: 1px solid var(--line); margin-top: 6px; }
 @media (prefers-reduced-motion: reduce) { .lt.gone { animation: none; display: none; } }
 
