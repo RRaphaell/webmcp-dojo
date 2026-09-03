@@ -19,8 +19,14 @@ const page = await browser.newPage()
 const errors = []
 page.on('pageerror', (e) => errors.push('pageerror: ' + e.message))
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()) })
-await page.goto(url, { waitUntil: 'networkidle' })
-await page.waitForFunction(() => typeof window.dojo?.state === 'function', null, { timeout: 15000 }).catch(() => problems.push('window.dojo never appeared'))
+// A fresh deploy can take up to a minute to propagate; poll before declaring it broken.
+let booted = false
+for (let attempt = 0; attempt < 8 && !booted; attempt++) {
+  await page.goto(url, { waitUntil: 'networkidle' })
+  booted = await page.waitForFunction(() => typeof window.dojo?.state === 'function', null, { timeout: 8000 }).then(() => true).catch(() => false)
+  if (!booted) await new Promise((r) => setTimeout(r, 8000))
+}
+if (!booted) problems.push('window.dojo never appeared after 8 attempts')
 const engine = await page.evaluate(() => window.dojo?.engine ?? 'none')
 const tools = await page.evaluate(async () => (await document.modelContext?.getTools?.())?.map((t) => t.name) ?? [])
 if (engine !== 'native') problems.push(`engine ${engine}, expected native`)
