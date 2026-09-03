@@ -43,7 +43,8 @@ export type RegistryEvent =
   | { type: 'set-changed'; set: string; tools: ActiveTool[] }
 
 /** Chrome's secure-tools budgets. We enforce them at registration so a violation is a build error, not a judge's finding. */
-export const BUDGET = { description: 500, paramDescription: 150, output: 1500 } as const
+export const BUDGET = { name: 30, description: 500, paramDescription: 150, output: 1500 } as const
+const NAME_RE = /^[A-Za-z0-9_.-]{1,30}$/
 
 export function text(t: string): ToolResult {
   return { content: [{ type: 'text', text: t }] }
@@ -52,6 +53,7 @@ export function text(t: string): ToolResult {
 export function toSchema(spec: ToolSpec): JsonSchema {
   const properties: JsonSchema['properties'] = {}
   for (const [k, v] of Object.entries(spec.params ?? {})) {
+    if (!NAME_RE.test(k)) throw new Error(`param name ${spec.name}.${k} must be 1-30 chars of [A-Za-z0-9_.-]`)
     if (v.description.length > BUDGET.paramDescription) throw new Error(`param ${spec.name}.${k} description over ${BUDGET.paramDescription} chars`)
     properties[k] = { type: v.type, description: v.description, ...(v.enum ? { enum: v.enum } : {}) }
   }
@@ -84,6 +86,7 @@ export class ToolRegistry {
     if (!mc) throw new Error('document.modelContext is not available')
     const next: ActiveTool[] = []
     for (const spec of specs) {
+      if (!NAME_RE.test(spec.name)) throw new Error(`tool name ${spec.name} must be 1-30 chars of [A-Za-z0-9_.-]`)
       if (spec.description.length > BUDGET.description) throw new Error(`tool ${spec.name} description over ${BUDGET.description} chars`)
       const descriptor: ToolDescriptor = {
         name: spec.name,

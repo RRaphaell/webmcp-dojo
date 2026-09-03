@@ -27,7 +27,10 @@ Submission needs ALL of:
 3. **Public repo** with an open-source LICENSE file GitHub detects (done: MIT).
 4. **All commits inside Aug 25 - Sep 3** (new project; this repo was created Sep 2 late night).
 5. **Text description** answering explicitly: why WebMCP fits this use case; how it improves the user experience; what people and agents can do together that was difficult or impossible before; how WebMCP was implemented.
-6. Submitted on Devpost before 1:00 PM PT Sep 3. Raphael has already joined the hackathon on Devpost.
+6. Submitted on Devpost before 1:00 PM PT Sep 3. Raphael has already joined the hackathon on Devpost. Organizers advise having it in ~3 hours early (10:00 AM).
+7. **The project must stay live, public, and unchanged until judging ends Sep 21, 5:00 PM PT.** Verbatim: "If you keep building on the same repo or the same live site after the deadline, you put your eligibility at risk." So: freeze at 1 PM; further work goes on a separate branch or a separate deploy, never on main or the submitted URL.
+8. Devpost form has a **Testing instructions** field: fill it (no login needed for the Dojo; include the ChatGPT desktop steps and the Chrome flag steps). Check the license shows in the About box **in an incognito window**. The repo must contain the actual `registerTool` code (it does).
+9. Organizer guidance on naming (Sep 1): "pick something specific that says what it does" - AI-generated names "all sound alike". Devpost title: **"The Dojo: a website that tests the agent visiting it"** (name + what it does).
 
 ## 3. Judging criteria (four, equally weighted, verbatim)
 
@@ -39,6 +42,8 @@ Submission needs ALL of:
 Stage-1 gate: fits the theme ("humans and agents interact, collaborate, and create together") and genuinely uses WebMCP.
 
 Judges may score from **video + text alone** without opening the app, and may use "automated AI-driven analysis". So: the README, the description and the video must be legible to a machine and a skimming human. Clear claims, a tool table, timestamps.
+
+Organizer video guidance (Sep 1 update, verbatim): "Show the project working in the first 10 to 15 seconds. Skip intros and title screens." "Start already logged in." "Do not type live. Paste in long text, or cut to the finished result." "Show one strong example. You do not need to repeat the same feature." "Save your team story and your inspiration for the written description, not the video." Description guidance: "'An agent can complete a multi-step booking in one turn, instead of clicking through six screens' tells us something. 'Leverages WebMCP for seamless agentic experiences' tells us nothing."
 
 ## 4. What the organizers said they want (verbatim, from the kickoff livestream, tutorial video, office hours, and organizer posts)
 
@@ -57,7 +62,7 @@ Judges may score from **video + text alone** without opening the app, and may us
 
 ## 5. What NOT to build (already done by sponsors/OpenAI, creativity penalty)
 
-storefront/checkout, coffee ordering, todo list, restaurant reservations, guestbook, chat-with-my-site, generic site builder, 3D modeling studio, doc editor with agent comments, crossword/puzzle builder, trip planner, detective mystery. Also crowded now: "test the website's tools" (mcpencil pictionary already submitted; an evals dashboard; an automated QA agent; a Flue test agent). The Dojo is the opposite direction: the site tests the agent.
+storefront/checkout, coffee ordering, todo list, restaurant reservations, guestbook, chat-with-my-site, generic site builder, 3D modeling studio, doc editor with agent comments, crossword/puzzle builder, trip planner, detective mystery. Also crowded now: "test the website's tools" (Prism 'purpose-aware WebMCP evaluation' on ChatGPT Sites, webmcp-eval.com, a swarm of site-readiness scanners; plus the games MCPencil pictionary and Taboo, both submitted). A scan of 496 live WebMCP sites found zero that test the visiting agent (docs/research/field-scan.md). The Dojo is the opposite direction: the site tests the agent. Say "tests your agent" in the first clause, never just "evals".
 
 ## 6. Technical facts about WebMCP today (build against these exactly)
 
@@ -67,7 +72,7 @@ storefront/checkout, coffee ordering, todo list, restaurant reservations, guestb
 - ChatGPT's implementation: **JavaScript registration in the top-level page only**; no declarative form API; no tools inside iframes. Works in the ChatGPT desktop app with models **Sol or Terra** (not Luna, not mobile, not Enterprise/Edu). The user sees a "Site tools" chip in the address bar (cursor icon, "Available site tools") and can inspect each call under Sources > Recently used. Every call passes ChatGPT's own safety review; consequential actions may get a confirmation prompt. Tool definitions and results are treated as **untrusted content** by ChatGPT.
 - Field-tested by participants: **Sol/Terra "don't use the tools unless nudged"** - so tool names and descriptions must state their purpose plainly, the page should show the human a suggested prompt, and the demo prompt should nudge ("use this site's tools to take the Dojo"). Tool calls "feel quite slow" - keep challenges snappy; show latency per call as a feature.
 - Chrome: 149+ with the flag; Model Context Tool Inspector extension can list and call tools manually; DevTools has a WebMCP panel. Disabled if the page sends `Origin-Agent-Cluster: ?0`.
-- Chrome security budgets (follow and state them in the README): **tool description <= 500 chars, parameter description <= 150 chars, single tool output <= 1.5K chars.** Use `untrustedContentHint` on anything returning external text. Reuse the app's own validation.
+- Chrome security budgets (follow and state them in the README): **tool name and parameter name <= 30 chars (ASCII letters, digits, `_ - .`), tool description <= 500 chars, parameter description <= 150 chars, single tool output <= 1.5K chars.** Use `untrustedContentHint` on anything returning external text. Reuse the app's own validation.
 - Reference implementations to learn from: cloudflare/agents `examples/webmcp-react`, `sdras/webmcp-demo` (judge's own 2-tool booking demo), vercel/shop PR #498, GoogleChromeLabs/webmcp-tools demos, npm `use-webmcp-tool`.
 
 ## 7. Design constraints (Raphael's brand system, brand/BRAND.md, applied to a product)
@@ -87,7 +92,7 @@ Must have:
 - A **live feed**: every tool call with name, args, result summary, latency, and a running score. "Agent attached" state.
 - A **report card** at the end with a belt rank, per-challenge results, and a shareable URL (state encoded in the URL, no backend).
 - **Works without an agent**: a human can browse belts, read what each tests, run tools by hand through a built-in inspector, and view a sample report card.
-- **Evals**: the repo ships a harness that runs a real LLM agent against the Dojo's tools headlessly (Anthropic key available in `../.secrets.env` outside the repo, never committed) and prints a results table. Results table pasted into the README.
+- **Evals in the official format**: Google's `webmcp-evals` CLI (npm, `npx webmcp-evals local|browser|smoke|analyze`) defines a JSON case format `[{ name, messages, expectedCall }]` with `$pattern/$contains/$type/$any/$lte` operators, `ordered/unordered`, `optional: true`, and `expectedCall: null` for negative tests (details: docs/research/evals-guide.md). The Dojo ships `evals/dojo.evals.json` in that exact format plus `evals/dojo.schema.json`, so `npx webmcp-evals smoke -u <live url> -e evals/dojo.evals.json` verifies the trajectories deterministically against the live page. Our own runner mirrors their scoring and prints their table shape. Also ships a harness that runs a real LLM agent against the Dojo's tools headlessly (Anthropic key available in `../.secrets.env` outside the repo, never committed) and prints a results table. Results table pasted into the README.
 - Security budgets respected and documented. Annotations correct.
 - Deployed to a live URL (Cloudflare Workers static assets via wrangler, token in `../.secrets.env`; fallback GitHub Pages).
 - README: what it is, the thesis, how to try it (ChatGPT desktop steps, Chrome flag steps), the tool table per belt, the evals table, architecture, security notes, license. Professional.
