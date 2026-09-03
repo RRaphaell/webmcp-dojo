@@ -6,6 +6,8 @@
 
 **Repo:** https://github.com/RRaphaell/webmcp-dojo (public, MIT, license detected by GitHub). Commit small and often. Every commit is evidence the work happened inside the window (Aug 25 - Sep 3).
 
+**Status (Sep 3, 01:45 PT): the product is built, tested and deployed.** Seven belts, Open Mat, report card, recorded-run replay, evals in the official format, README/SUBMISSION/VIDEO_SCRIPT written. Read `docs/BUILD_LOG.md` for what was done and why, `docs/DESIGN.md` for the locked spec. What remains is Raphael's morning: live test in ChatGPT desktop, record, upload, submit, freeze at 1 PM.
+
 ---
 
 ## 1. The product in one paragraph
