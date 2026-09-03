@@ -25,7 +25,9 @@ export class DojoRuntime {
   constructor(readonly engine: EngineKind, belts: Belt[]) {
     this.belts = [...belts].sort((a, b) => a.order - b.order)
     this.store = new Store(engine)
-    this.seed = Number(new URLSearchParams(location.search).get('seed')) || Math.floor(Math.random() * 1e9)
+    const params = new URLSearchParams(location.search)
+    this.seed = Number(params.get('seed')) || Math.floor(Math.random() * 1e9)
+    this.registry.keepPrevious = params.get('compat') === '1'
     this.registry.on((ev) => {
       if (ev.type === 'call') this.store.push(ev.record)
     })

@@ -32,8 +32,8 @@ export interface BeltResult {
   ms: number
   /** Short, concrete, human-readable verdict line. */
   note: string
-  /** Named checks with pass/fail, shown on the report card. */
-  checks: { label: string; pass: boolean }[]
+  /** Named checks with pass/fail, shown on the report card. Evidence says who witnessed it: the page saw the call, or a person pressed a control. */
+  checks: { label: string; pass: boolean; evidence?: 'tool-observed' | 'human-attested' }[]
 }
 
 /** Everything a belt may touch. Created fresh per run. */

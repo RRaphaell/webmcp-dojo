@@ -10,7 +10,10 @@
     "preview": "vite preview",
     "test": "node tests/run.mjs",
     "eval": "node evals/run.mjs",
-    "deploy": "npm run build && wrangler deploy"
+    "deploy": "npm run build && wrangler deploy && node scripts/check-live.mjs",
+    "check:live": "node scripts/check-live.mjs",
+    "evals:budget": "node evals/budget-check.mjs",
+    "evals:schema": "node evals/export-schema.mjs"
   },
   "devDependencies": {
     "playwright": "^1.62.1",

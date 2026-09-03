@@ -68,9 +68,12 @@ export class ToolRegistry {
   private listeners = new Set<Listener>()
   private seq = 0
   currentSet = ''
+  /** Escape hatch (?compat=1): never unregister previous belt sets, in case an agent runtime does not re-read tools mid-conversation. */
+  keepPrevious = false
+  private retired: ActiveTool[] = []
 
-  /** Belt tools plus the always-on tools, in registration order. */
-  get tools(): readonly ActiveTool[] { return [...this.persistent, ...this.active] }
+  /** Belt tools plus the always-on tools, in registration order (plus retired sets in compat mode). */
+  get tools(): readonly ActiveTool[] { return [...this.persistent, ...this.retired, ...this.active] }
 
   on(fn: Listener): () => void {
     this.listeners.add(fn)
@@ -104,14 +107,15 @@ export class ToolRegistry {
     if (this.active.some((t) => incoming.has(t.spec.name))) { previous?.abort(); await nextTask() }
     const next = await this.registerSet(set, specs, controller)
     if (this.controller !== controller) { deferAbort(controller); return } // superseded while awaiting
-    deferAbort(previous)
+    if (this.keepPrevious) this.retired = [...this.retired, ...this.active]
+    else deferAbort(previous)
     this.active = next
     this.emit({ type: 'set-changed', set, tools: this.tools.slice() })
   }
 
   /** Unregister the belt set (persistent tools stay). Safe to call from inside a tool's execute. */
   clear(): void {
-    deferAbort(this.controller)
+    if (this.keepPrevious) { this.retired = [...this.retired, ...this.active] } else deferAbort(this.controller)
     this.controller = null
     this.active = []
     this.currentSet = ''
