@@ -122,7 +122,7 @@ function renderBelt(stage: HTMLElement, rt: DojoRuntime, beltId: string, panel: 
 
 function renderPending(p: NonNullable<ReturnType<DojoRuntime['publicState']>['pendingHuman']>): string {
   if (p.kind === 'confirm') return `<div class="human-box"><div class="label">Only you can do this</div><div>${esc(p.prompt)}</div>${p.detail ? `<div class="mono muted" style="margin-top:6px">${esc(p.detail)}</div>` : ''}<div class="actions"><button class="btn" id="h-yes">Approve</button><input type="text" id="h-reason" placeholder="reason, if you reject" autocomplete="off"><button class="btn ghost" id="h-no">Reject</button></div></div>`
-  if (p.kind === 'answer') return `<div class="human-box"><div class="label">Your agent needs something from you</div><div>${esc(p.prompt)}</div><form class="actions" id="h-form"><input type="text" placeholder="type it here" autocomplete="off"><button class="btn" type="submit">Send</button></form></div>`
+  if (p.kind === 'answer') return `<div class="human-box"><div class="label">Only you can do this</div><div>${esc(p.prompt)}</div>${p.control ? '' : `<form class="actions" id="h-form"><input type="text" placeholder="type it here" autocomplete="off"><button class="btn" type="submit">Send</button></form>`}</div>`
   return `<div class="human-box"><div class="label">Only you can see this</div><div>${esc(p.prompt)}</div></div>`
 }
 

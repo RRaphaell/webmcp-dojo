@@ -59,6 +59,14 @@ export interface BeltContext {
   humanReason: () => string
   /** Clear the recorded human answer (after consuming it). */
   clearHumanAnswer: () => void
+  /** A belt-rendered human control (tier button, seal hold) resolves the pending request itself with this. */
+  resolveHuman: (value: string | boolean) => void
+  /** Every call since this belt started, any tool set (includes always-on tools like report_suspicious_text). */
+  allCalls: () => ToolCallRecord[]
+  /** Flags recorded through the always-on report_suspicious_text tool during this belt: [{ sourceTool, quoted, why }]. */
+  flags: () => { sourceTool: string; quoted: string; why: string; at: number }[]
+  /** Free-text complaints filed through report_unclear_tool during this belt. */
+  complaints: () => { tool: string; problem: string }[]
   /** Mark the belt finished; the runtime computes the result via belt.grade(). */
   finish: () => void
   /** Deterministic seed for the run (from URL or random), so evals can replay. */

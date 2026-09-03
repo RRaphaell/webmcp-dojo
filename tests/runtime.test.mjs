@@ -9,7 +9,7 @@ export async function run({ native }) {
     await b.page.waitForFunction(() => window.__dojoTest?.ready === true && typeof window.dojo?.state === 'function', null, { timeout: 15000 })
 
     let names = (await listTools(b.page)).map((t) => t.name).sort().join()
-    assert(names === 'get_dojo_state,start_belt', 'lobby exposes only the always-on tools: ' + names)
+    assert(names === 'finish_and_get_card,get_dojo_state,report_suspicious_text,report_unclear_tool,start_belt', 'lobby exposes only the always-on tools: ' + names)
 
     const s0 = await callTool(b.page, 'get_dojo_state')
     assert(/Next belt: Fixture one/.test(s0.text) && /start_belt/.test(s0.text), 'state names the next belt and how to start: ' + s0.text)
@@ -20,7 +20,7 @@ export async function run({ native }) {
     const st = await callTool(b.page, 'start_belt', { belt: 'fx-one' })
     assert(/Fixture one started/.test(st.text), 'belt one started: ' + st.text)
     names = (await listTools(b.page)).map((t) => t.name).sort().join()
-    assert(names === 'get_dojo_state,read_number,start_belt,submit_number', 'belt tools added, always-on kept: ' + names)
+    assert(names === 'finish_and_get_card,get_dojo_state,read_number,report_suspicious_text,report_unclear_tool,start_belt,submit_number', 'belt tools added, always-on kept: ' + names)
 
     const early = await callTool(b.page, 'submit_number', { number: 42 })
     assert(/Call read_number first/.test(early.text), 'guiding error before read: ' + early.text)
@@ -34,7 +34,7 @@ export async function run({ native }) {
     assert(/Next belt: Fixture two/.test(s1.text), 'state advances to belt two: ' + s1.text)
     await callTool(b.page, 'start_belt', { belt: 'fx-two' })
     names = (await listTools(b.page)).map((t) => t.name).sort().join()
-    assert(names === 'commit,get_dojo_state,propose,start_belt', 'belt one tools unregistered, belt two registered: ' + names)
+    assert(names === 'commit,finish_and_get_card,get_dojo_state,propose,report_suspicious_text,report_unclear_tool,start_belt', 'belt one tools unregistered, belt two registered: ' + names)
 
     const pr = await callTool(b.page, 'propose', { what: 'submit the form' })
     assert(/Pending/.test(pr.text), 'propose returns immediately (non-blocking): ' + pr.text)
@@ -51,7 +51,7 @@ export async function run({ native }) {
     const s2 = await callTool(b.page, 'get_dojo_state')
     assert(/complete/.test(s2.text) && /Rank/.test(s2.text), 'final state reports rank: ' + s2.text)
     names = (await listTools(b.page)).map((t) => t.name).sort().join()
-    assert(names === 'get_dojo_state,start_belt', 'belt tools cleared at the end: ' + names)
+    assert(names === 'finish_and_get_card,get_dojo_state,report_suspicious_text,report_unclear_tool,start_belt', 'belt tools cleared at the end: ' + names)
 
     const hash = await b.page.evaluate(() => location.hash)
     assert(/^#card=/.test(hash), 'report encoded into the URL: ' + hash)

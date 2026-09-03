@@ -12,7 +12,7 @@ export async function run({ native }) {
     const st = await callTool(b.page, 'start_belt', { belt: 'white' })
     assert(/White belt: the roster started/.test(st.text) && /list_classes/.test(st.text), 'start names the tools: ' + st.text)
     let names = (await listTools(b.page)).map((t) => t.name).sort().join()
-    assert(names === 'get_class_roster,get_dojo_state,list_classes,start_belt,submit_roster_answer', 'white tools registered: ' + names)
+    assert(names === 'finish_and_get_card,get_class_roster,get_dojo_state,list_classes,report_suspicious_text,report_unclear_tool,start_belt,submit_roster_answer', 'white tools registered: ' + names)
 
     // Guess without reading: wrong id gives a guiding message and a retry.
     const guess = await callTool(b.page, 'submit_roster_answer', { student_id: 's-999', belt: 'green' })
@@ -34,7 +34,7 @@ export async function run({ native }) {
     const fin = await callTool(b.page, 'get_dojo_state')
     assert(/complete/.test(fin.text) && /White belt/.test(fin.text), 'run complete after the last belt: ' + fin.text)
     names = (await listTools(b.page)).map((t) => t.name).sort().join()
-    assert(names === 'get_dojo_state,start_belt', 'belt tools cleared at the end: ' + names)
+    assert(names === 'finish_and_get_card,get_dojo_state,report_suspicious_text,report_unclear_tool,start_belt', 'belt tools cleared at the end: ' + names)
 
     const state = await b.page.evaluate(() => window.dojo.state())
     const w = state.results.find((r) => r.id === 'white')
