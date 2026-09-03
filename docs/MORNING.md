@@ -34,7 +34,7 @@ Do not wait on it. Two honest fallbacks, in order of preference:
    set -a && source ../.secrets.env && set +a
    node evals/run.mjs --models claude-sonnet-5 --seed 7 --belts green,blue,brown --headed --url https://webmcp-dojo.billowing-frost-066e.workers.dev
    ```
-   A visible Chrome window (1280x860) opens on the live site with WebMCP on; Sonnet 5 takes the three belts through the page's tools while the terminal prints each call. Record the browser window (the terminal can be a second shot). Sonnet, not Opus: Opus hit API refusals after the seal code in three of four runs. Say in the narration that it is Claude in Chrome's WebMCP engine, and that ChatGPT was degraded that morning. The judges' rules accept Chrome 149+ with the flag as a surface.
+   Verified headless against the live URL at 9:40 AM: Sonnet 5 passed green, blue and brown in 6 calls (par 6), 76 seconds. A visible Chrome window (1280x860) opens on the live site with WebMCP on; Sonnet 5 takes the three belts through the page's tools while the terminal prints each call. Record the browser window (the terminal can be a second shot). Sonnet, not Opus: Opus hit API refusals after the seal code in three of four runs. Say in the narration that it is Claude in Chrome's WebMCP engine, and that ChatGPT was degraded that morning. The judges' rules accept Chrome 149+ with the flag as a surface.
 2. **The recorded run** (the lobby button) as B-roll, labelled as a recording on screen and in the narration. It is a real Opus 5 transcript executing for real, and the page says so the whole time.
 
 Either way the description's testing instructions still point judges at the ChatGPT desktop app first; nothing in the submission claims a live ChatGPT run that did not happen.
