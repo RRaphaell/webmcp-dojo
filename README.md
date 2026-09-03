@@ -34,7 +34,7 @@ Site tools are not available on Enterprise or Edu workspaces or on the Luna mode
 
 **No agent at hand.** The page simulates the tool channel so you can take the belts by hand from the tools panel. The card is stamped as taken by hand; it never launders a manual run as an agent run.
 
-`?quick=1` runs only the three belts that need you (green, blue, brown). `?seed=N` fixes the answers so two agents can be compared on the same run. `?compat=1` registers every belt's tools at once instead of per belt (see "Dynamic registration" below).
+`?quick=1` runs only the three belts that need you (green, blue, brown). `?seed=N` fixes the answers so two agents can be compared on the same run. `?static=1` registers every belt's tools at page load, gated to the active belt, instead of per belt; `?compat=1` keeps each belt's tools registered after the belt ends instead of unregistering them. Both exist for agent runtimes that do not re-read the tool list mid-conversation (see "How WebMCP is used").
 
 ## The belts
 
@@ -88,7 +88,7 @@ Ranks follow one rule, printed on the card: **a belt is only worth what is under
 Everything the agent can do goes through `document.modelContext.registerTool`. The implementation is in [`src/webmcp/registry.ts`](src/webmcp/registry.ts) and the belts in [`src/belts/`](src/belts/).
 
 - **Five always-on tools** (`get_dojo_state`, `start_belt`, `report_suspicious_text`, `report_unclear_tool`, `finish_and_get_card`) are registered once and never unregistered, so a tool-set change is never a dead end for the agent: `get_dojo_state` always explains what is happening and what to call next. The injection flag tool is global on purpose: registering it next to the trap would telegraph the trap.
-- **Dynamic registration is structural.** Each belt registers its own tool set when it starts and the previous belt's set is unregistered (one `AbortController` per belt). The LIVE TOOLS panel on the page shows the swap as it happens. The new set registers before the old one aborts, so the agent never sees an empty surface. Whether ChatGPT re-reads tools registered mid-conversation is not documented; `start_belt`'s return text names the newly live tools verbatim as a belt-and-braces measure, and `?compat=1` registers everything up front if a client turns out not to refresh.
+- **Dynamic registration is structural.** Each belt registers its own tool set when it starts and the previous belt's set is unregistered (one `AbortController` per belt). The LIVE TOOLS panel on the page shows the swap as it happens. The new set registers before the old one aborts, so the agent never sees an empty surface. Whether ChatGPT re-reads tools registered mid-conversation is not documented; `start_belt`'s return text names the newly live tools verbatim as a belt-and-braces measure, and `?static=1` registers everything up front if a client turns out not to refresh (Google's own evals CLI needs it, see Evals).
 - **Annotations are exactly the two that exist:** `readOnlyHint` on every read tool (the "read / write" badges in the ChatGPT site-tools panel come from it) and `untrustedContentHint` on the tool that returns member-written messages. `destructiveHint`, `idempotentHint` and `openWorldHint` are not part of WebMCP and are dropped silently by Chrome, so they appear nowhere here.
 - **Chrome's security budgets are enforced at registration** and checked by `npm run evals:budget`: tool and parameter names at most 30 characters, tool descriptions at most 500, parameter descriptions at most 150, tool outputs at most 1,500. A violation is a build error, not a judge's finding.
 - **No tool ever throws.** Chrome discards the rejection reason and the agent receives a bare `UnknownError`, so every refusal, validation failure and guiding error is a resolved result whose text says what to do next ("You are in Mat. file_incident works in Records. Call go_to_room with room=\"records\"...").
@@ -172,7 +172,8 @@ Stack: Vite + TypeScript, no framework, no runtime dependencies. A dev shim inst
 | `src/runtime.ts` | belt lifecycle, always-on tools, human channel, `window.dojo` hooks, report card |
 | `src/ui/` | agent rail, inspector, Open Mat lint |
 | `tests/` | real-Chrome harness and tests (registry, runtime, one per belt) |
-| `evals/` | official-format eval cases and schema, the runner, the scoring port, the budget check |
+| `evals/` | official-format eval cases, smoke suite and schema, the runner (ladder + suite modes), the scoring port, the budget check, results |
+| `scripts/` | post-deploy live assertion, trajectory capture, table generators |
 | `docs/` | the brief, the design, research notes, build log, screenshots, submission text |
 
 ## License

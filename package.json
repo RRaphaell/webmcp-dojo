@@ -13,7 +13,11 @@
     "deploy": "npm run build && wrangler deploy && node scripts/check-live.mjs",
     "check:live": "node scripts/check-live.mjs",
     "evals:budget": "node evals/budget-check.mjs",
-    "evals:schema": "node evals/export-schema.mjs"
+    "evals:schema": "node evals/export-schema.mjs",
+    "evals:capture": "node scripts/capture-evals.mjs",
+    "evals:detail": "node scripts/ladder-detail.mjs",
+    "tables": "node scripts/belt-table.mjs",
+    "evals:suite": "node evals/run.mjs --suite evals/dojo.evals.json"
   },
   "devDependencies": {
     "playwright": "^1.62.1",
