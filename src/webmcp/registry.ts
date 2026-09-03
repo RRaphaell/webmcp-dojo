@@ -19,6 +19,8 @@ export interface ToolCallRecord {
   result?: ToolResult
   error?: string
   readOnly: boolean
+  /** The tool declared untrustedContentHint: its output is third-party text, shown hatched in the feed. */
+  untrusted: boolean
 }
 
 export interface ParamSpec {
@@ -164,6 +166,7 @@ export class ToolRegistry {
     const id = ++this.seq
     const startedAt = performance.now()
     const readOnly = !!spec.annotations?.readOnlyHint
+    const untrusted = !!spec.annotations?.untrustedContentHint
     this.inFlight++
     try {
       const result = await spec.execute(args)
@@ -173,13 +176,13 @@ export class ToolRegistry {
       }
       const ms = performance.now() - startedAt
       this.inFlight--
-      this.emit({ type: 'call', record: { id, set, tool: spec.name, args, startedAt, ms, ok: !result.isError, summary: clip(result.content?.[0]?.text ?? ''), result, readOnly } })
+      this.emit({ type: 'call', record: { id, set, tool: spec.name, args, startedAt, ms, ok: !result.isError, summary: clip(result.content?.[0]?.text ?? ''), result, readOnly, untrusted } })
       return result
     } catch (err) {
       const ms = performance.now() - startedAt
       const message = err instanceof Error ? err.message : String(err)
       this.inFlight--
-      this.emit({ type: 'call', record: { id, set, tool: spec.name, args, startedAt, ms, ok: false, summary: clip(message), error: message, readOnly } })
+      this.emit({ type: 'call', record: { id, set, tool: spec.name, args, startedAt, ms, ok: false, summary: clip(message), error: message, readOnly, untrusted } })
       // Guiding errors: never throw at the engine; return a message the agent can act on.
       return { content: [{ type: 'text', text: message }], isError: true }
     }

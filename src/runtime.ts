@@ -314,5 +314,5 @@ export class DojoRuntime {
 }
 
 function publicCall(c: ToolCallRecord) {
-  return { id: c.id, set: c.set, tool: c.tool, args: c.args, ms: Math.round(c.ms * 10) / 10, ok: c.ok, summary: c.summary, readOnly: c.readOnly }
+  return { id: c.id, set: c.set, tool: c.tool, args: c.args, ms: Math.round(c.ms * 10) / 10, ok: c.ok, summary: c.summary, readOnly: c.readOnly, untrusted: c.untrusted }
 }

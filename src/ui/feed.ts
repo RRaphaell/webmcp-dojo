@@ -7,9 +7,9 @@ import { esc, fmtArgs, fmtMs } from './dom'
 export function renderFeed(container: HTMLElement, feed: ToolCallRecord[], attached: boolean, currentBelt: string | null, sensei = ''): void {
   const rows = feed.slice(-60).map((c) => {
     const state = c.ok ? 'ok' : 'err'
-    return `<li class="call ${state}${c.set === currentBelt ? ' current' : ''}">
+    return `<li class="call ${state}${c.set === currentBelt ? ' current' : ''}${c.untrusted ? ' untrusted' : ''}">
       <div class="call-head">
-        <span class="badge ${c.readOnly ? 'read' : 'write'}">${c.readOnly ? 'read' : 'write'}</span>
+        <span class="badge ${c.readOnly ? 'read' : 'write'}">${c.readOnly ? 'read' : 'write'}</span>${c.untrusted ? '<span class="badge untrusted">untrusted</span>' : ''}
         <code class="tool">${esc(c.tool)}</code>
         <span class="ms" title="page-side execution time">${fmtMs(c.ms)}</span>
       </div>
