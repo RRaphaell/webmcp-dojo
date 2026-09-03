@@ -3,6 +3,7 @@
 import type { BeltResult, PendingHuman } from './belts/types'
 import type { ToolCallRecord } from './webmcp/registry'
 import type { EngineKind } from './webmcp/shim'
+import type { FeedEvent } from './ui/feed'
 
 export type Phase = 'lobby' | 'belt' | 'report'
 
@@ -14,6 +15,9 @@ export interface DojoState {
   beltStartedAt: number | null
   results: BeltResult[]
   feed: ToolCallRecord[]
+  /** Human actions, check verdicts, toolchange notes and sensei lines, shown in the same stream as calls. */
+  events: FeedEvent[]
+  registrationError: string | null
   pendingHuman: PendingHuman
   /** Human-visible panel for the current belt (HTML). */
   beltPanel: string
@@ -36,7 +40,7 @@ export class Store {
   constructor(engine: EngineKind) {
     this.state = {
       engine, phase: 'lobby', agentAttached: false, currentBelt: null, beltStartedAt: null,
-      results: [], feed: [], pendingHuman: null, beltPanel: '', beltPanelBind: null, status: '', sensei: '', agentName: '', limitTo: null,
+      results: [], feed: [], events: [], registrationError: null, pendingHuman: null, beltPanel: '', beltPanelBind: null, status: '', sensei: '', agentName: '', limitTo: null,
     }
   }
 
@@ -53,5 +57,9 @@ export class Store {
 
   push(record: ToolCallRecord): void {
     this.set({ feed: [...this.state.feed, record], agentAttached: true })
+  }
+
+  event(ev: FeedEvent): void {
+    this.set({ events: [...this.state.events, ev] })
   }
 }

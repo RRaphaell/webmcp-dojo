@@ -6,3 +6,4 @@ dist/
 .wrangler/
 .DS_Store
 tests/artifacts/
+.claude/

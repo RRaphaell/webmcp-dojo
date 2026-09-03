@@ -28,7 +28,7 @@ function fromBase64Url(s: string): Uint8Array {
 export function encodeReport(card: ReportCard): string {
   const compact = {
     v: card.v, at: card.at, agent: card.agent, engine: card.engine,
-    r: card.results.map((r) => [r.id, r.pass ? 1 : 0, r.score, r.calls, Math.round(r.ms), r.note, r.checks.map((c) => [c.label, c.pass ? 1 : 0])]),
+    r: card.results.map((r) => [r.id, r.pass ? 1 : 0, r.score, r.calls, Math.round(r.ms), r.note, r.checks.map((c) => [c.label, c.pass ? 1 : 0, c.evidence === 'human-attested' ? 'h' : c.evidence === 'tool-observed' ? 't' : ''])]),
   }
   return toBase64Url(new TextEncoder().encode(JSON.stringify(compact)))
 }
@@ -41,7 +41,7 @@ export function decodeReport(fragment: string, names: Record<string, string>): R
       v: 1, at: String(json.at), agent: String(json.agent ?? ''), engine: json.engine === 'native' ? 'native' : 'shim',
       results: json.r.map((row: unknown[]) => ({
         id: String(row[0]), name: names[String(row[0])] ?? String(row[0]), pass: row[1] === 1, score: Number(row[2]), calls: Number(row[3]), ms: Number(row[4]), note: String(row[5] ?? ''),
-        checks: Array.isArray(row[6]) ? (row[6] as unknown[][]).map((c) => ({ label: String(c[0]), pass: c[1] === 1 })) : [],
+        checks: Array.isArray(row[6]) ? (row[6] as unknown[][]).map((c) => ({ label: String(c[0]), pass: c[1] === 1, ...(c[2] === 'h' ? { evidence: 'human-attested' as const } : c[2] === 't' ? { evidence: 'tool-observed' as const } : {}) })) : [],
       })),
     }
   } catch {

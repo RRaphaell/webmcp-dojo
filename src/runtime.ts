@@ -23,6 +23,7 @@ export class DojoRuntime {
   private current: { belt: Belt; ctx: BeltContext; startedAt: number; startCallIndex: number; finished: boolean; finishPending: boolean } | null = null
   private humanAnswerValue: string | boolean | null = null
   private humanReasonValue = ''
+  private lastToolCount: number | null = null
   private flagLog: { sourceTool: string; quoted: string; why: string; at: number; belt: string | null }[] = []
   private complaintLog: { tool: string; problem: string; belt: string | null }[] = []
   private seed: number
@@ -35,6 +36,13 @@ export class DojoRuntime {
     this.registry.keepPrevious = params.get('compat') === '1'
     if (params.get('quick') === '1') this.store.set({ limitTo: ['green', 'blue', 'brown'] })
     this.registry.on((ev) => {
+      if (ev.type === 'set-changed') {
+        const n = ev.tools.length
+        const prev = this.lastToolCount
+        this.lastToolCount = n
+        if (prev !== null && prev !== n) this.store.event({ kind: 'toolchange', at: performance.now(), text: `toolchange ${n > prev ? '+' + (n - prev) : '-' + (prev - n)} · now ${n} registered` })
+        else if (prev === null) { /* first registration, no note */ }
+      }
       if (ev.type === 'call') {
         const first = !this.store.state.agentAttached
         this.store.push(ev.record)
@@ -59,7 +67,11 @@ export class DojoRuntime {
   }
 
   async boot(): Promise<void> {
-    await this.registry.registerPersistent(this.persistentTools())
+    try {
+      await this.registry.registerPersistent(this.persistentTools())
+    } catch (err) {
+      this.store.set({ registrationError: err instanceof Error ? err.message : String(err) })
+    }
   }
 
   /** The always-on tools: orientation + start. They never unregister, so a tool set change is never a dead end. */
@@ -173,7 +185,7 @@ export class DojoRuntime {
       humanAnswer: () => this.humanAnswerValue,
       humanReason: () => this.humanReasonValue,
       clearHumanAnswer: () => { this.humanAnswerValue = null; this.humanReasonValue = '' },
-      resolveHuman: (value) => { this.humanAnswerValue = value; this.humanReasonValue = ''; this.store.set({ pendingHuman: null }) },
+      resolveHuman: (value) => { this.humanAnswerValue = value; this.humanReasonValue = ''; this.store.set({ pendingHuman: null }); this.store.event({ kind: 'human', at: performance.now(), text: typeof value === 'boolean' ? (value ? 'human approved' : 'human rejected') : `human provided: "${value}"` }) },
       allCalls: () => this.store.state.feed.slice(startCallIndex),
       flags: () => this.flagLog.filter((f) => f.belt === belt.id).map(({ sourceTool, quoted, why, at }) => ({ sourceTool, quoted, why, at })),
       complaints: () => this.complaintLog.filter((c) => c.belt === belt.id).map(({ tool, problem }) => ({ tool, problem })),
@@ -205,6 +217,9 @@ export class DojoRuntime {
     result.ms = Math.round(performance.now() - cur.startedAt)
     result.calls = cur.ctx.calls().length
     const results = [...this.store.state.results.filter((r) => r.id !== result.id), result]
+    const now = performance.now()
+    for (const c of result.checks) this.store.event({ kind: 'check', at: now, text: c.label, pass: c.pass })
+    if (result.safetyFailure) this.store.event({ kind: 'safety', at: now, text: `SAFETY FAILURE · ${result.safetyFailure}` })
     this.store.set({ results, pendingHuman: null })
     this.humanAnswerValue = null
     if (!result.senseiSaid) this.sensei(result.pass ? 'pass' : 'fail')
@@ -256,7 +271,9 @@ export class DojoRuntime {
 
   /** One dry line, once per event, deterministic on the seed. */
   sensei(event: SenseiEvent): void {
-    this.store.set({ sensei: senseiLine(event, this.seed + this.store.state.results.length) })
+    const line = senseiLine(event, this.seed + this.store.state.results.length)
+    this.store.set({ sensei: line })
+    this.store.event({ kind: 'sensei', at: performance.now(), text: line })
   }
 
   // ---- human channel ----
@@ -266,8 +283,17 @@ export class DojoRuntime {
     this.store.set({ pendingHuman: req })
   }
 
-  humanConfirm(approve: boolean, reason = ''): void { this.humanAnswerValue = approve; this.humanReasonValue = approve ? '' : reason; this.store.set({ pendingHuman: null }) }
-  humanAnswer(value: string): void { this.humanAnswerValue = value; this.store.set({ pendingHuman: null }) }
+  humanConfirm(approve: boolean, reason = ''): void {
+    this.humanAnswerValue = approve
+    this.humanReasonValue = approve ? '' : reason
+    this.store.set({ pendingHuman: null })
+    this.store.event({ kind: 'human', at: performance.now(), text: approve ? 'human approved' : `human rejected${reason ? `: "${reason}"` : ''}` })
+  }
+  humanAnswer(value: string): void {
+    this.humanAnswerValue = value
+    this.store.set({ pendingHuman: null })
+    this.store.event({ kind: 'human', at: performance.now(), text: `human answered: "${value}"` })
+  }
 
   /** Restart everything (human action). */
   reset(): void {
@@ -276,7 +302,7 @@ export class DojoRuntime {
     this.registry.clear()
     this.flagLog = []
     this.complaintLog = []
-    this.store.set({ phase: 'lobby', currentBelt: null, results: [], feed: [], pendingHuman: null, beltPanel: '', beltPanelBind: null, status: '', sensei: '' })
+    this.store.set({ phase: 'lobby', currentBelt: null, results: [], feed: [], events: [], pendingHuman: null, beltPanel: '', beltPanelBind: null, status: '', sensei: '' })
     history.replaceState(null, '', location.pathname)
   }
 
