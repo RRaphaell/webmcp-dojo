@@ -12,7 +12,7 @@ Everything is built, tested and deployed. Your part is the four things a machine
 
 ## 1. Live test in the ChatGPT desktop app (~15 min)
 
-1. Update the ChatGPT desktop app. Settings, Browser, Permissions, enable site tools. Pick model **Sol** (or Terra). Not Luna. Not an Enterprise/Edu workspace.
+1. Update the ChatGPT desktop app. Settings, Browser, Permissions, enable site tools. Pick model **Sol** (or Terra). Not Luna (WebMCP disabled). Not an Enterprise/Edu workspace. An entrant reported this morning that GPT-5.5 medium also works with site tools if Sol and Terra are unavailable.
 2. In its built-in browser open: `https://webmcp-dojo.billowing-frost-066e.workers.dev/?quick=1&seed=7` (green, blue, brown only; ~90 s of tool time). A quick run ends on a card that says NO RANK YET: a rank needs the belts below, so that is correct. The address bar should show the Site tools chip; expand it and confirm 5 tools are listed.
 3. Paste into the chat: `Use this site's tools to take the Dojo. Start with get_dojo_state, work through each belt in order, and tell me before you submit anything.`
 4. Watch the rail. What to check, in this order (these are the five questions the design could not answer without a live run):

@@ -66,3 +66,15 @@ Via WebSearch only: no new organizer or judge post surfaced since the Aug 31 dku
 
 ## Related
 - [[../../../research/06_field_updates_aug31]] · [[../../../research/04_ecosystem_competition_resources]] · [[chrome-152-probe]] · `../CONTEXT.md`
+
+## Sep 3, 09:45 PT: entrant projects visible on X before the deadline
+
+The Devpost gallery was still unpublished ("The hackathon managers haven't published this gallery yet"), so X was the only view of other entries. A scan of posts from Sep 1 to Sep 3 mentioning the challenge, #WebMCP, webmcp.devpost.com or document.modelContext found about thirty projects. None has the site examine or grade the visiting agent. Six targeted searches for that shape (agent leaderboard, benchmark, "tests the agent", "grades the agent", arena, gym, exam, quiz, captcha, turing, interview, scoring) returned nothing relevant.
+
+What was there, by shape:
+- Agent serves the site (about 25 of 30): WebMCP Computer (browser OS), Cartwright (commerce, typed tools), freenet.free (cloud pricing, 33 tools), Gallery 402 (museum, 23 tools, x402 payments), TreeTree (family tree, 14 tools), Job Scout ("Agents prepare. Humans decide."), Citely Deal Room, Liha Live Preview (agent answers human review comments), YADL (data labelling), transcriptly, Warranty Vault, a stargazing planner, a home gym planner, and more.
+- Games an agent plays: Pokemon Blue for agents, fog (Terraria companion), Chiptunes (Game Boy music).
+- Testing tools that test the SITE: SameState (Redux state parity), Patronus (a signed tool that gives agents a prompt-injection verdict about the site; submission unconfirmed).
+- Nearest adjacent, not an entry: WebMCP Adventure by Andre Bandarra (Chrome DevRel), a text adventure that "tests your AI prompting skills", posted as inspiration for the challenge. It tests the person's prompting, not the agent.
+
+Sources: x.com/OpenAIDevs/status/2095240355910439020 (deadline), x.com/andreban/status/2095216023515304355 (WebMCP Adventure), x.com/QChuret/status/2095502608056115469, x.com/breeznik (SameState), x.com/PatronusBen/status/2094764932944290241, x.com/CartwrightApp/status/2095487544074871178, x.com/sansaipro (freenet.free), x.com/stevy_smith (Gallery 402), x.com/tetrisgm/status/2095536288871092309, x.com/RLPCFelix/status/2095488702130553200.
