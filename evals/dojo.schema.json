@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-09-03T15:34:13.479Z",
+  "generatedAt": "2026-09-03T15:54:20.286Z",
   "tools": [
     {
       "name": "finish_and_get_card",
-      "description": "Ends the run and returns the report card: the belt rank earned, every belt's result, total tool calls against par, and a link the person can share. Call it when you have attempted every belt, or as soon as the person tells you to stop. Belts not attempted are recorded as skipped.",
+      "description": "Ends the run and returns the report card: the belt rank earned, every belt's result, and total tool calls against par. The shareable link is on the person's screen. Call it when you have attempted every belt, or as soon as the person tells you to stop. Belts not attempted are recorded as skipped.",
       "inputSchema": {
         "type": "object",
         "properties": {

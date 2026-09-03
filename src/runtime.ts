@@ -9,7 +9,7 @@ import type { ToolCallRecord, ToolSpec } from './webmcp/registry'
 import type { EngineKind } from './webmcp/shim'
 import { Store } from './state'
 import type { DojoState } from './state'
-import { reportUrl } from './share'
+import { reportUrl, modeSearch } from './share'
 import type { ReportCard } from './share'
 import { senseiLine } from './sensei'
 import type { SenseiEvent } from './sensei'
@@ -55,6 +55,8 @@ export class DojoRuntime {
         }
       }
       if (ev.type === 'call') {
+        // In static mode every belt tool is registered in the always-on set; stamp the call with the belt it belongs to.
+        if (this.staticMode && ev.record.set === 'dojo') { const owner = this.toolBelt.get(ev.record.tool); if (owner) ev.record.set = owner }
         // A person in the inspector, or the replay, is not an agent arriving.
         const first = !this.store.state.agentAttached && !ev.record.via
         this.store.push(ev.record)
@@ -93,9 +95,15 @@ export class DojoRuntime {
 
   /** Static mode registers every belt's tools at load. The executes behind them are rebuilt on reset so a second run starts fresh. */
   private staticSpecs = new Map<string, ToolSpec[]>()
+  private toolBelt = new Map<string, string>()
   private rebuildStaticSpecs(): void {
     this.staticSpecs.clear()
-    for (const belt of this.belts) this.staticSpecs.set(belt.id, belt.tools(this.contextFor(belt)))
+    this.toolBelt.clear()
+    for (const belt of this.belts) {
+      const specs = belt.tools(this.contextFor(belt))
+      this.staticSpecs.set(belt.id, specs)
+      for (const t of specs) this.toolBelt.set(t.name, belt.id)
+    }
   }
 
   /** A belt tool that stays registered while its belt is not on the floor (static and compat modes) answers with a guide instead of acting. */
@@ -161,7 +169,7 @@ export class DojoRuntime {
       },
       {
         name: 'finish_and_get_card',
-        description: 'Ends the run and returns the report card: the belt rank earned, every belt\'s result, total tool calls against par, and a link the person can share. Call it when you have attempted every belt, or as soon as the person tells you to stop. Belts not attempted are recorded as skipped.',
+        description: 'Ends the run and returns the report card: the belt rank earned, every belt\'s result, and total tool calls against par. The shareable link is on the person\'s screen. Call it when you have attempted every belt, or as soon as the person tells you to stop. Belts not attempted are recorded as skipped.',
         params: { agent_name: { type: 'string', description: 'Name to print on the card, for example ChatGPT Sol. Printed exactly as given. Under 40 characters.' } },
         required: [],
         execute: async (a) => {
@@ -410,7 +418,7 @@ export class DojoRuntime {
     if (this.staticMode) this.rebuildStaticSpecs()
     this.beltStart.clear()
     this.store.set({ phase: 'lobby', currentBelt: null, results: [], feed: [], events: [], pendingHuman: null, beltPanel: '', beltPanelBind: null, status: '', sensei: '', recording: '' })
-    history.replaceState(null, '', location.pathname)
+    history.replaceState(null, '', location.pathname + modeSearch())
   }
 
   /** window.dojo: the human-side surface used by the UI, the tests and the eval harness. Never reachable through tools. */

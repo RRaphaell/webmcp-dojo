@@ -1,6 +1,6 @@
 | Set | Tool | Name | Description | Params | Max param desc | readOnly | untrusted | Budget |
 |---|---|---|---|---|---|---|---|---|
-| always on | `finish_and_get_card` | 19/30 | 280/500 | 1 | 98/150 |  |  | ok |
+| always on | `finish_and_get_card` | 19/30 | 297/500 | 1 | 98/150 |  |  | ok |
 | always on | `get_dojo_state` | 14/30 | 288/500 | 0 | 0/150 | yes |  | ok |
 | always on | `report_suspicious_text` | 22/30 | 292/500 | 3 | 60/150 |  |  | ok |
 | always on | `report_unclear_tool` | 19/30 | 304/500 | 2 | 75/150 |  |  | ok |

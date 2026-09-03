@@ -8,9 +8,9 @@ import { renderRail } from './ui/feed'
 import { renderInspector } from './ui/inspector'
 import { renderOpenMat } from './ui/openmat'
 import { esc, copyText } from './ui/dom'
-import { readReportFromUrl, reportUrl } from './share'
+import { readReportFromUrl, reportUrl, modeSearch } from './share'
 import type { ReportCard } from './share'
-import { loadRecording, replay } from './replay'
+import { loadRecording, replay, stopReplay } from './replay'
 
 const COACHED_PROMPT = SUGGESTED_PROMPT + ' Ask me whenever you need something only I can see.'
 
@@ -43,7 +43,8 @@ export async function boot(engine: EngineKind): Promise<void> {
   const inspectorEl = root.querySelector<HTMLElement>('#inspector')!
   const dock = root.querySelector<HTMLElement>('#dock')!
   renderOpenMat(root.querySelector<HTMLElement>('#openmat')!)
-  root.querySelector('#home')?.addEventListener('click', (e) => { e.preventDefault(); history.replaceState(null, '', location.pathname + location.search); rt.reset() })
+  let showShared = false
+  root.querySelector('#home')?.addEventListener('click', (e) => { e.preventDefault(); stopReplay(); showShared = false; history.replaceState(null, '', location.pathname + modeSearch()); rt.reset() })
 
   const shared = readReportFromUrl(beltNames)
   damagedLink = !shared && /#card=/.test(location.hash)
@@ -68,7 +69,7 @@ export async function boot(engine: EngineKind): Promise<void> {
   }
 
   let lastPhase = ''
-  let showShared = !!shared
+  showShared = !!shared
   let stageKey = ''
   let dockKey = ''
   rt.store.subscribe((s) => {
@@ -77,7 +78,7 @@ export async function boot(engine: EngineKind): Promise<void> {
     // must not rebuild the belt panel: a person may be mid-press on a human-only control.
     const dk = JSON.stringify(s.pendingHuman)
     if (dk !== dockKey) { dockKey = dk; renderDock(dock, rt, s.pendingHuman) }
-    const sk = [s.phase, s.currentBelt, s.beltPanel, s.status, s.results.length, s.limitTo?.join(','), showShared].join('|')
+    const sk = [s.phase, s.currentBelt, s.beltPanel, s.status, s.results.length, s.limitTo?.join(','), showShared, s.recording].join('|')
     if (sk === stageKey) return
     stageKey = sk
     if (s.phase === 'lobby' && showShared) {
@@ -108,7 +109,7 @@ function renderLobby(stage: HTMLElement, rt: DojoRuntime, results: BeltResult[],
       <p class="lead">In most WebMCP demos the agent works for the site. Here the site is the examiner. Open this page in an agent-enabled browser, paste one line, and your agent works through seven belts using only this page's tools. You watch every call. Some belts cannot be passed without you.</p>
       ${rt.engine === 'shim' ? `<div class="prompt-box shim-box">
         <div class="label"><span>No agent browser detected</span></div>
-        <div class="actions" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px"><button class="btn small" id="by-hand">Take the belts by hand</button><button class="btn ghost small" id="watch-top">Watch a recorded run</button></div>
+        <div class="actions" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px"><button class="btn small" id="by-hand">Take the belts by hand</button>${rt.store.state.recording ? '<button class="btn ghost small" disabled>Recording playing</button>' : '<button class="btn ghost small" id="watch-top">Watch a recorded run</button>'}</div>
         <div class="muted" style="font-size:12.5px;margin-top:8px">This page registers its tools with document.modelContext, which this browser does not have. The tools panel on the right runs every tool by hand, and the card says so. In the ChatGPT desktop app, or Chrome 149+ with WebMCP on, the line below is all you need.</div>
       </div>` : ''}
       <div class="prompt-box">
@@ -136,12 +137,13 @@ function renderLobby(stage: HTMLElement, rt: DojoRuntime, results: BeltResult[],
         </ol>
         <p class="muted" style="font-size:13px;margin-top:8px">Quick run: add <code>?quick=1</code> to the URL to take the three shortest belts (green, blue, brown). Two of them need you; the third is the injection trap.</p>
       </div>
-      <div class="share" style="margin-top:22px"><button class="btn ghost small" id="watch">Watch a recorded run</button><span class="muted" style="font-size:13px" id="watch-note">A Claude model took the belts in real Chrome. The calls replay against this page for real.</span></div>`
+      <div class="share" style="margin-top:22px">${rt.store.state.recording ? '<button class="btn ghost small" disabled>Recording playing</button>' : '<button class="btn ghost small" id="watch">Watch a recorded run</button>'}<span class="muted" style="font-size:13px" id="watch-note">A Claude model took the belts in real Chrome. The calls replay against this page for real.</span></div>`
     stage.querySelector('#copy-prompt')?.addEventListener('click', async (e) => {
       const ok = await copyText(coached ? COACHED_PROMPT : SUGGESTED_PROMPT)
       ;(e.target as HTMLButtonElement).textContent = ok ? 'Copied' : 'Select and copy'
     })
     const startWatch = async (btn: HTMLButtonElement) => {
+      if (rt.store.state.recording) return
       btn.disabled = true; btn.textContent = 'Loading the recording'
       const rec = await loadRecording()
       if (!rec) { btn.textContent = 'No recording available'; return }
@@ -177,9 +179,9 @@ function renderBelt(stage: HTMLElement, rt: DojoRuntime, beltId: string, panel: 
       <p class="muted"><span class="mono">tests:</span> ${esc(belt.tests)} <span class="mono" style="margin-left:10px">you:</span> ${esc(belt.humanRole)}</p>
       <div class="panel" id="belt-panel">${panel || '<p class="muted">Waiting for the agent\'s first call.</p>'}</div>
       <div class="status">${esc(status)}</div>
-      <div class="share" style="margin-top:14px"><button class="btn ghost small" id="skip">Skip this belt</button><span class="muted mono">${results.length} belt${results.length === 1 ? '' : 's'} graded</span></div>
+      <div class="share" style="margin-top:14px"><button class="btn ghost small" id="skip" ${rt.store.state.recording ? 'disabled title="a recording is playing"' : ''}>Skip this belt</button><span class="muted mono">${results.length} belt${results.length === 1 ? '' : 's'} graded</span></div>
     </div>`
-  stage.querySelector('#skip')?.addEventListener('click', () => rt.skipCurrent())
+  stage.querySelector('#skip')?.addEventListener('click', () => { if (rt.store.state.recording) return; rt.skipCurrent() })
 }
 
 // ---------- docked bar: the only place a human-only control renders ----------
@@ -275,7 +277,7 @@ function renderReport(stage: HTMLElement, card: ReportCard, rt: DojoRuntime, sha
     </div>`
   stage.querySelector('#copy-url')?.addEventListener('click', async (e) => { const ok = await copyText(url); (e.target as HTMLButtonElement).textContent = ok ? 'Copied' : 'Select and copy' })
   stage.querySelector('#copy-md')?.addEventListener('click', async (e) => { const ok = await copyText(cardMarkdown(card, rt)); (e.target as HTMLButtonElement).textContent = ok ? 'Copied' : 'Select and copy' })
-  stage.querySelector('#again')?.addEventListener('click', () => { history.replaceState(null, '', location.pathname + location.search); onRun() })
+  stage.querySelector('#again')?.addEventListener('click', () => { stopReplay(); history.replaceState(null, '', location.pathname + modeSearch()); onRun() })
 }
 
 function cardMarkdown(card: ReportCard, rt: DojoRuntime): string {

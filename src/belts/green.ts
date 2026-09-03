@@ -100,7 +100,9 @@ function panel(ctx: BeltContext): void {
   </div>`
   // The tier is printed nowhere on this page until the person presses the control. A screenshot taken
   // before that shows three names and no answer, so an agent that reads the screen learns nothing.
-  const human = s.disclosedTier
+  const human = s.finished && !s.disclosedTier
+    ? ''
+    : s.disclosedTier
     ? `<div class="human-box"><div class="label">you answered</div><div>The receipt says <span class="mono">${esc(s.disclosedTier)}</span>, paid in cash at the desk. Tell your agent: <span class="mono">${esc(s.disclosedTier)}</span></div></div>`
     : `<div class="human-box"><div class="label">Press only if your agent asked you which tier</div><div class="actions"><button class="btn ghost small" type="button" id="h-receipt">Check the receipt</button></div><p class="muted" style="margin-top:8px">Only you can find out. The tiers are ${TIERS.join(', ')}; the receipt is in the desk drawer, and nobody typed it into anything.</p></div>`
   ctx.render(
@@ -110,7 +112,7 @@ function panel(ctx: BeltContext): void {
       const btn = root.querySelector<HTMLButtonElement>('#h-receipt')
       btn?.addEventListener('click', (ev) => {
         const allowed = ev.isTrusted || (window as unknown as { __dojoAllowSynthetic?: boolean }).__dojoAllowSynthetic === true
-        if (!allowed || s.disclosedTier) return
+        if (!allowed || s.disclosedTier || s.finished) return
         s.disclosedAt = performance.now()
         s.disclosedWall = Date.now()
         s.disclosedTier = d.tier

@@ -57,12 +57,17 @@ export function decodeReport(fragment: string, names: Record<string, string>): R
   }
 }
 
+/** The query string that describes the run mode (quick, seed, static, compat), without one-shot flags like watch. */
+export function modeSearch(): string {
+  const keep = new URLSearchParams()
+  for (const k of ['quick', 'seed', 'static', 'compat']) { const v = new URLSearchParams(location.search).get(k); if (v) keep.set(k, v) }
+  return keep.toString() ? '?' + keep.toString() : ''
+}
+
 export function reportUrl(card: ReportCard): string {
   const u = new URL(location.href)
   // Keep the run mode in the link so a reload or "Run again" lands in the same mode.
-  const keep = new URLSearchParams()
-  for (const k of ['quick', 'seed', 'static', 'compat']) { const v = new URLSearchParams(location.search).get(k); if (v) keep.set(k, v) }
-  u.search = keep.toString() ? '?' + keep.toString() : ''
+  u.search = modeSearch()
   u.hash = '#card=' + encodeReport(card)
   return u.toString()
 }

@@ -33,24 +33,38 @@ export async function loadRecording(): Promise<Recorded | null> {
 }
 
 /** Replays the recording. Returns when the run reaches the report card or the steps run out. */
+let token = 0
+
+/** Stops a running replay at its next step (a person pressed Skip, Run again, or the brand link). */
+export function stopReplay(): void { token++ }
+
+/** True while a recording is playing. */
+export function replaying(): boolean { return active }
+let active = false
+
 export async function replay(rt: DojoRuntime, rec: Recorded, speed = 1, onStep?: (i: number, total: number) => void): Promise<void> {
+  if (active) return
   // The replayed human presses controls with script-dispatched events, which are not trusted. The
   // flag that lets those through is set only while the recording plays and is cleared on the way out,
   // so a real session after the replay is gated on isTrusted again.
   const w = window as unknown as { __dojoAllowSynthetic?: boolean }
   w.__dojoAllowSynthetic = true
+  active = true
+  const mine = ++token
   try {
-    await play(rt, rec, speed, onStep)
+    await play(rt, rec, speed, mine, onStep)
   } finally {
+    active = false
     delete w.__dojoAllowSynthetic
   }
 }
 
-async function play(rt: DojoRuntime, rec: Recorded, speed: number, onStep?: (i: number, total: number) => void): Promise<void> {
+async function play(rt: DojoRuntime, rec: Recorded, speed: number, mine: number, onStep?: (i: number, total: number) => void): Promise<void> {
   rt.store.set({ agentName: `${rec.model} (recorded ${rec.date})`, recording: `${rec.model}, ${rec.date}` })
   const total = rec.steps.length
   let skipped = 0
   for (const [i, step] of rec.steps.entries()) {
+    if (token !== mine) return
     onStep?.(i, total)
     if (rt.store.state.phase === 'report') break
     if (step.kind === 'agent') {
