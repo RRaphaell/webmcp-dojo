@@ -1,0 +1,21 @@
+{
+  "name": "webmcp-dojo",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "The Dojo: a website that tests the AI agent visiting it. Built for the OpenAI WebMCP Challenge.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "node tests/run.mjs",
+    "eval": "node evals/run.mjs",
+    "deploy": "npm run build && wrangler deploy"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "vite": "^6.0.0",
+    "playwright": "^1.62.1",
+    "wrangler": "^4.128.0"
+  }
+}

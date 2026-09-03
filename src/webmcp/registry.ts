@@ -1,0 +1,146 @@
+// Tool registry: the one place the Dojo registers tools. It wraps every tool's
+// execute() so each call is timed and logged (the live feed reads this), keeps
+// its own list of active tools (so the inspector never depends on getTools()),
+// and switches whole tool sets atomically with AbortController - dynamic
+// registration is how belts change what the agent can do.
+
+import type { JsonSchema, ToolAnnotations, ToolDescriptor, ToolResult } from './types'
+
+export interface ToolCallRecord {
+  id: number
+  set: string
+  tool: string
+  args: Record<string, unknown>
+  startedAt: number
+  ms: number
+  ok: boolean
+  /** First text content of the result, or the error message. Truncated for display. */
+  summary: string
+  result?: ToolResult
+  error?: string
+  readOnly: boolean
+}
+
+export interface ToolSpec {
+  name: string
+  title?: string
+  description: string
+  params?: Record<string, { type: 'string' | 'number' | 'integer' | 'boolean'; description: string; enum?: string[] }>
+  required?: string[]
+  annotations?: ToolAnnotations
+  execute: (args: Record<string, unknown>) => Promise<ToolResult> | ToolResult
+}
+
+export interface ActiveTool {
+  spec: ToolSpec
+  set: string
+  descriptor: ToolDescriptor
+}
+
+type Listener = (ev: RegistryEvent) => void
+export type RegistryEvent =
+  | { type: 'call'; record: ToolCallRecord }
+  | { type: 'set-changed'; set: string; tools: ActiveTool[] }
+
+/** Chrome's secure-tools budgets. We enforce them at registration so a violation is a build error, not a judge's finding. */
+export const BUDGET = { description: 500, paramDescription: 150, output: 1500 } as const
+
+export function text(t: string): ToolResult {
+  return { content: [{ type: 'text', text: t }] }
+}
+
+export function toSchema(spec: ToolSpec): JsonSchema {
+  const properties: JsonSchema['properties'] = {}
+  for (const [k, v] of Object.entries(spec.params ?? {})) {
+    if (v.description.length > BUDGET.paramDescription) throw new Error(`param ${spec.name}.${k} description over ${BUDGET.paramDescription} chars`)
+    properties[k] = { type: v.type, description: v.description, ...(v.enum ? { enum: v.enum } : {}) }
+  }
+  return { type: 'object', properties, required: spec.required ?? Object.keys(properties), additionalProperties: false }
+}
+
+export class ToolRegistry {
+  private controller: AbortController | null = null
+  private active: ActiveTool[] = []
+  private listeners = new Set<Listener>()
+  private seq = 0
+  currentSet = ''
+
+  get tools(): readonly ActiveTool[] { return this.active }
+
+  on(fn: Listener): () => void {
+    this.listeners.add(fn)
+    return () => this.listeners.delete(fn)
+  }
+
+  private emit(ev: RegistryEvent) { for (const l of this.listeners) l(ev) }
+
+  /** Replace the whole active tool set. Old tools are unregistered via AbortSignal first. */
+  async activate(set: string, specs: ToolSpec[]): Promise<void> {
+    this.controller?.abort()
+    const controller = new AbortController()
+    this.controller = controller
+    this.currentSet = set
+    const mc = document.modelContext
+    if (!mc) throw new Error('document.modelContext is not available')
+    const next: ActiveTool[] = []
+    for (const spec of specs) {
+      if (spec.description.length > BUDGET.description) throw new Error(`tool ${spec.name} description over ${BUDGET.description} chars`)
+      const descriptor: ToolDescriptor = {
+        name: spec.name,
+        title: spec.title,
+        description: spec.description,
+        inputSchema: toSchema(spec),
+        annotations: spec.annotations,
+        execute: (args) => this.run(set, spec, args ?? {}),
+      }
+      await mc.registerTool(descriptor, { signal: controller.signal })
+      next.push({ spec, set, descriptor })
+    }
+    if (this.controller !== controller) return // superseded while awaiting
+    this.active = next
+    this.emit({ type: 'set-changed', set, tools: next })
+  }
+
+  /** Unregister everything. */
+  clear(): void {
+    this.controller?.abort()
+    this.controller = null
+    this.active = []
+    this.currentSet = ''
+    this.emit({ type: 'set-changed', set: '', tools: [] })
+  }
+
+  /** Execute an active tool by name through the same wrapper an engine would hit (used by the inspector). */
+  async invoke(name: string, args: Record<string, unknown>): Promise<ToolResult> {
+    const t = this.active.find((a) => a.spec.name === name)
+    if (!t) throw new Error(`no active tool named ${name}`)
+    return this.run(t.set, t.spec, args)
+  }
+
+  private async run(set: string, spec: ToolSpec, args: Record<string, unknown>): Promise<ToolResult> {
+    const id = ++this.seq
+    const startedAt = performance.now()
+    const readOnly = !!spec.annotations?.readOnlyHint
+    try {
+      const result = await spec.execute(args)
+      const first = result.content?.[0]?.text ?? ''
+      if (first.length > BUDGET.output) {
+        result.content[0].text = first.slice(0, BUDGET.output - 1) + '…'
+      }
+      const ms = performance.now() - startedAt
+      this.emit({ type: 'call', record: { id, set, tool: spec.name, args, startedAt, ms, ok: !result.isError, summary: clip(result.content?.[0]?.text ?? ''), result, readOnly } })
+      return result
+    } catch (err) {
+      const ms = performance.now() - startedAt
+      const message = err instanceof Error ? err.message : String(err)
+      this.emit({ type: 'call', record: { id, set, tool: spec.name, args, startedAt, ms, ok: false, summary: clip(message), error: message, readOnly } })
+      // Guiding errors: never throw at the engine; return a message the agent can act on.
+      return { content: [{ type: 'text', text: message }], isError: true }
+    }
+  }
+}
+
+function clip(s: string, n = 160): string {
+  const one = s.replace(/\s+/g, ' ').trim()
+  return one.length > n ? one.slice(0, n - 1) + '…' : one
+}

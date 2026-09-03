@@ -1,0 +1,76 @@
+/* The Dojo design tokens. Derived from brand/BRAND.md: white / black / gray,
+   swamp green used rarely, one flat purple for a single bold moment, heavy
+   wide-tracked sans for headlines, mono for data. No gradients. */
+
+:root {
+  color-scheme: light;
+  --paper: #ffffff;
+  --surface: #f3f3ef;
+  --wash: #ecf0e9;
+  --ink: #171815;
+  --muted: #6e7069;
+  --faint: #a2a49c;
+  --line: rgba(23, 24, 21, 0.14);
+  --line-strong: rgba(23, 24, 21, 0.32);
+  --green: #3f5442;
+  --green-ink: #2e3d31;
+  --purple: #7a4fb3;
+  --fail: #9a3b2e;
+  --fail-wash: #f6ebe8;
+  --pass-wash: #e6eee7;
+  --code-bg: #171815;
+  --code-ink: #e9eae4;
+
+  --sans: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --serif: 'Iowan Old Style', 'Palatino Nova', Palatino, 'Book Antiqua', Georgia, 'Times New Roman', serif;
+  --mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
+
+  --radius: 6px;
+  --radius-lg: 10px;
+  --shadow: 0 1px 2px rgba(23, 24, 21, 0.06), 0 10px 30px -22px rgba(23, 24, 21, 0.35);
+  --maxw: 1120px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --paper: #131412;
+    --surface: #1c1d1a;
+    --wash: #1e231f;
+    --ink: #f0f0ea;
+    --muted: #9a9c92;
+    --faint: #6f716a;
+    --line: rgba(240, 240, 234, 0.16);
+    --line-strong: rgba(240, 240, 234, 0.34);
+    --green: #7fa88e;
+    --green-ink: #9bc2a8;
+    --purple: #a98ad6;
+    --fail: #d98a7c;
+    --fail-wash: #2e1f1c;
+    --pass-wash: #1e2a21;
+    --code-bg: #0c0e0c;
+    --code-ink: #dfe1da;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 10px 30px -22px rgba(0, 0, 0, 0.7);
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --paper: #131412;
+  --surface: #1c1d1a;
+  --wash: #1e231f;
+  --ink: #f0f0ea;
+  --muted: #9a9c92;
+  --faint: #6f716a;
+  --line: rgba(240, 240, 234, 0.16);
+  --line-strong: rgba(240, 240, 234, 0.34);
+  --green: #7fa88e;
+  --green-ink: #9bc2a8;
+  --purple: #a98ad6;
+  --fail: #d98a7c;
+  --fail-wash: #2e1f1c;
+  --pass-wash: #1e2a21;
+  --code-bg: #0c0e0c;
+  --code-ink: #dfe1da;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 10px 30px -22px rgba(0, 0, 0, 0.7);
+}
