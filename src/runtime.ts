@@ -19,7 +19,7 @@ export class DojoRuntime {
   readonly store: Store
   private belts: Belt[]
   private current: { belt: Belt; ctx: BeltContext; startedAt: number; startCallIndex: number; finished: boolean } | null = null
-  private humanResolver: ((v: string | boolean) => void) | null = null
+  private humanAnswerValue: string | boolean | null = null
   private seed: number
 
   constructor(readonly engine: EngineKind, belts: Belt[]) {
@@ -116,6 +116,8 @@ export class DojoRuntime {
       calls: () => this.store.state.feed.slice(startCallIndex).filter((c) => c.set === belt.id),
       askHuman: (req) => this.askHuman(req),
       pending: () => this.store.state.pendingHuman,
+      humanAnswer: () => this.humanAnswerValue,
+      clearHumanAnswer: () => { this.humanAnswerValue = null },
       finish: () => { if (self.current?.belt === belt && !self.current.finished) self.finishBelt(true) },
       seed: this.seed,
       render: (html) => this.store.set({ beltPanel: html }),
@@ -136,8 +138,7 @@ export class DojoRuntime {
     result.calls = cur.ctx.calls().length
     const results = [...this.store.state.results.filter((r) => r.id !== result.id), result]
     this.store.set({ results, pendingHuman: null })
-    this.humanResolver?.(false)
-    this.humanResolver = null
+    this.humanAnswerValue = null
     // Belt tools stay registered until the next belt starts so the agent's last call resolves normally;
     // get_dojo_state already reports what to do next.
     if (!this.nextBelt()) this.finishDojo()
@@ -167,14 +168,13 @@ export class DojoRuntime {
 
   // ---- human channel ----
 
-  private askHuman(req: Exclude<PendingHuman, null>): Promise<string | boolean> {
-    this.humanResolver?.(false)
+  private askHuman(req: Exclude<PendingHuman, null>): void {
+    this.humanAnswerValue = null
     this.store.set({ pendingHuman: req })
-    return new Promise((resolve) => { this.humanResolver = (v) => { this.store.set({ pendingHuman: null }); resolve(v) } })
   }
 
-  humanConfirm(approve: boolean): void { this.humanResolver?.(approve); this.humanResolver = null }
-  humanAnswer(value: string): void { this.humanResolver?.(value); this.humanResolver = null }
+  humanConfirm(approve: boolean): void { this.humanAnswerValue = approve; this.store.set({ pendingHuman: null }) }
+  humanAnswer(value: string): void { this.humanAnswerValue = value; this.store.set({ pendingHuman: null }) }
 
   /** Restart everything (human action). */
   reset(): void {

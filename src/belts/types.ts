@@ -40,10 +40,19 @@ export interface BeltResult {
 export interface BeltContext {
   /** Calls made so far in this belt (the feed, filtered). */
   calls: () => ToolCallRecord[]
-  /** Ask the human for something the agent cannot get through tools. Resolves when the human acts. */
-  askHuman: (req: Exclude<PendingHuman, null>) => Promise<string | boolean>
+  /**
+   * Ask the human for something the agent cannot get through tools. NON-BLOCKING:
+   * returns immediately; the tool that asked should tell the agent to check back
+   * (propose/check pattern), because a tool call that waits for a click can hang
+   * inside an agent runtime. The human's answer lands in humanAnswer().
+   */
+  askHuman: (req: Exclude<PendingHuman, null>) => void
   /** Current pending human request, if any. */
   pending: () => PendingHuman
+  /** The human's latest response to askHuman: true/false for confirm, a string for answer, null if none yet. */
+  humanAnswer: () => string | boolean | null
+  /** Clear the recorded human answer (after consuming it). */
+  clearHumanAnswer: () => void
   /** Mark the belt finished; the runtime computes the result via belt.grade(). */
   finish: () => void
   /** Deterministic seed for the run (from URL or random), so evals can replay. */
