@@ -99,6 +99,9 @@ export class ToolRegistry {
     const controller = new AbortController()
     this.controller = controller
     this.currentSet = set
+    // A name shared with the outgoing set would be rejected as a duplicate; retire the old set first in that case.
+    const incoming = new Set(specs.map((s) => s.name))
+    if (this.active.some((t) => incoming.has(t.spec.name))) previous?.abort()
     const next = await this.registerSet(set, specs, controller)
     if (this.controller !== controller) { controller.abort(); return } // superseded while awaiting
     previous?.abort()
