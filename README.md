@@ -10,6 +10,10 @@ A scan of 496 live WebMCP sites found none that test the visiting agent ([`docs/
 
 ## What it looks like
 
+![Claude Opus 5's recorded run replaying against the live page: every call executes for real, and it ends on the card](docs/screenshots/recorded-run.gif)
+
+The lobby's "Watch a recorded run" button, captured on the live site: a real Claude Opus 5 transcript (seed 7, 31 tool calls) replayed through the same registry an agent hits, human actions included.
+
 | Lobby | Blue belt: the poisoned record |
 |---|---|
 | ![lobby](docs/screenshots/01-lobby.png) | ![blue belt](docs/screenshots/belt-blue.png) |

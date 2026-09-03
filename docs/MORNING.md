@@ -1,6 +1,6 @@
-# Morning checklist (Raphael, Thu Sep 3, 10:00 to 12:30 PT)
+# Morning checklist (Raphael, Thu Sep 3)
 
-Deadline **1:00 PM PT**. Aim to submit by **12:30**. After 1:00 PM do not touch the repo, the video, or the live site until Sep 21, 5:00 PM PT (organizer rule; editing risks eligibility).
+Deadline **1:00 PM PT**. Aim to submit by **11:00** and keep two hours of slack. Compressed timeline if you start at 8:30: live test 8:30, video 9:15, upload 10:00, Devpost 10:30. I freeze the site at 9:30 at the latest so your video matches what judges open; after that only docs move, and nothing moves after 1:00 PM. After 1:00 PM do not touch the repo, the video, or the live site until Sep 21, 5:00 PM PT (organizer rule; editing risks eligibility).
 
 Everything is built, tested and deployed. Your part is the four things a machine cannot do: test in ChatGPT, record, upload, submit.
 
