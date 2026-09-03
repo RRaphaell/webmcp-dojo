@@ -356,7 +356,8 @@ export class DojoRuntime {
 
   card(): ReportCard {
     const hand = this.store.state.feed.some((c) => c.via === 'hand')
-    return { v: 2, at: new Date().toISOString(), agent: this.store.state.agentName, engine: this.engine, hand, results: this.store.state.results }
+    const replay = !hand && this.store.state.feed.some((c) => c.via === 'replay')
+    return { v: 2, at: new Date().toISOString(), agent: this.store.state.agentName, engine: this.engine, hand, replay, results: this.store.state.results }
   }
 
   /** The rank in words. A run that skipped the lower belts and passed the rest has no rank yet, which is not "No belt". */

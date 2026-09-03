@@ -1,0 +1,28 @@
+| Set | Tool | Name | Description | Params | Max param desc | readOnly | untrusted | Budget |
+|---|---|---|---|---|---|---|---|---|
+| always on | `finish_and_get_card` | 19/30 | 280/500 | 1 | 98/150 |  |  | ok |
+| always on | `get_dojo_state` | 14/30 | 288/500 | 0 | 0/150 | yes |  | ok |
+| always on | `report_suspicious_text` | 22/30 | 292/500 | 3 | 60/150 |  |  | ok |
+| always on | `report_unclear_tool` | 19/30 | 304/500 | 2 | 75/150 |  |  | ok |
+| always on | `start_belt` | 10/30 | 303/500 | 1 | 46/150 |  |  | ok |
+| white | `get_class_roster` | 16/30 | 165/500 | 1 | 76/150 | yes |  | ok |
+| white | `list_classes` | 12/30 | 168/500 | 0 | 0/150 | yes |  | ok |
+| white | `submit_roster_answer` | 20/30 | 237/500 | 2 | 54/150 |  |  | ok |
+| yellow | `file_incident` | 13/30 | 215/500 | 3 | 68/150 |  |  | ok |
+| yellow | `go_to_room` | 10/30 | 266/500 | 1 | 32/150 |  |  | ok |
+| yellow | `read_mat_log` | 12/30 | 258/500 | 0 | 0/150 | yes |  | ok |
+| orange | `check_proposal` | 14/30 | 304/500 | 1 | 56/150 | yes |  | ok |
+| orange | `get_change_impact` | 17/30 | 296/500 | 2 | 60/150 | yes |  | ok |
+| orange | `propose_change` | 14/30 | 296/500 | 3 | 75/150 |  |  | ok |
+| green | `get_signup_draft` | 16/30 | 252/500 | 0 | 0/150 | yes |  | ok |
+| green | `submit_signup` | 13/30 | 242/500 | 2 | 106/150 |  |  | ok |
+| blue | `promote_all_students` | 20/30 | 272/500 | 2 | 75/150 |  |  | ok |
+| blue | `search_member_messages` | 22/30 | 253/500 | 1 | 63/150 | yes | yes | ok |
+| blue | `submit_fee_answer` | 17/30 | 151/500 | 2 | 85/150 |  |  | ok |
+| brown | `check_in_delivery` | 17/30 | 286/500 | 2 | 86/150 |  |  | ok |
+| brown | `get_delivery` | 12/30 | 243/500 | 0 | 0/150 | yes |  | ok |
+| black | `list_waitlist` | 13/30 | 240/500 | 1 | 55/150 | yes |  | ok |
+| black | `move_student` | 12/30 | 279/500 | 3 | 51/150 |  |  | ok |
+| black | `move_students` | 13/30 | 215/500 | 3 | 72/150 |  |  | ok |
+
+24 tools checked, 0 over budget.

@@ -13,6 +13,8 @@ export interface ReportCard {
   engine: 'native' | 'shim'
   /** True when any call on this run was made by a person through the inspector rather than by an agent. */
   hand?: boolean
+  /** True when the calls came from the recorded-run replay (a real transcript executed for real, but not a live agent). */
+  replay?: boolean
   results: BeltResult[]
 }
 
@@ -30,7 +32,7 @@ function fromBase64Url(s: string): Uint8Array {
 
 export function encodeReport(card: ReportCard): string {
   const compact = {
-    v: card.v, at: card.at, agent: card.agent, engine: card.engine, hand: card.hand ? 1 : 0,
+    v: card.v, at: card.at, agent: card.agent, engine: card.engine, hand: card.hand ? 1 : 0, replay: card.replay ? 1 : 0,
     r: card.results.map((r) => [r.id, r.pass ? 1 : 0, r.calls, Math.round(r.ms), r.note, r.honors ?? [], r.marks ?? [], r.safetyFailure ?? '', r.checks.map((c) => [c.label, c.pass ? 1 : 0, c.evidence === 'human-attested' ? 'h' : c.evidence === 'tool-observed' ? 't' : ''])]),
   }
   return toBase64Url(new TextEncoder().encode(JSON.stringify(compact)))
@@ -41,7 +43,7 @@ export function decodeReport(fragment: string, names: Record<string, string>): R
     const json = JSON.parse(new TextDecoder().decode(fromBase64Url(fragment)))
     if (json?.v !== 2 || !Array.isArray(json.r)) return null
     return {
-      v: 2, at: String(json.at), agent: String(json.agent ?? ''), engine: json.engine === 'native' ? 'native' : 'shim', hand: json.hand === 1,
+      v: 2, at: String(json.at), agent: String(json.agent ?? ''), engine: json.engine === 'native' ? 'native' : 'shim', hand: json.hand === 1, replay: json.replay === 1,
       results: json.r.map((row: unknown[]) => ({
         id: String(row[0]), name: names[String(row[0])] ?? String(row[0]), pass: row[1] === 1, calls: Number(row[2]), ms: Number(row[3]), note: String(row[4] ?? ''),
         honors: Array.isArray(row[5]) ? (row[5] as unknown[]).map(String) : [],

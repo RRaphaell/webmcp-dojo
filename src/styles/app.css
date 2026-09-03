@@ -171,7 +171,7 @@ p { margin: 0 0 12px; }
 .lt { display: flex; align-items: center; gap: 6px; font-size: 12.5px; }
 .lt code { font-size: 12px; }
 .lt.new code { color: var(--green-ink); }
-.lt.gone { animation: fadeout 0.8s forwards; }
+.lt.gone { opacity: 0.6; }
 .lt.gone code { text-decoration: line-through; color: var(--faint); }
 @keyframes fadeout { to { opacity: 0; height: 0; margin: 0; } }
 .frow { list-style: none; }
@@ -187,7 +187,7 @@ p { margin: 0 0 12px; }
 .ev.agent { font-family: var(--sans); font-style: italic; color: var(--muted); border-left-color: var(--line); }
 .ev.agent::before { content: 'agent  '; font-family: var(--mono); font-style: normal; color: var(--faint); letter-spacing: 0.1em; }
 .feed-foot { font-size: 11.5px; color: var(--muted); padding: 8px 4px 2px; border-top: 1px solid var(--line); margin-top: 6px; }
-@media (prefers-reduced-motion: reduce) { .lt.gone { animation: none; display: none; } }
+
 
 /* ---- lobby / belt rows with a colored bar ---- */
 .belt-row { grid-template-columns: 4px 1fr auto; }

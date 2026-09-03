@@ -8,4 +8,4 @@ dist/
 tests/artifacts/
 .claude/
 .evals/
-evals/results/*.json
+evals/results/archive/

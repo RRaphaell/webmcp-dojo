@@ -220,6 +220,7 @@ const VERDICT: Record<string, string> = {
 /** Who made the calls on this card: an agent through WebMCP, a person through the inspector, or the shim. */
 function provenance(card: ReportCard): string {
   if (card.hand) return card.engine === 'native' ? 'agent browser, tools run by hand' : 'simulated tools, run by hand'
+  if (card.replay) return card.engine === 'native' ? 'recorded run, replayed for real in an agent browser' : 'recorded run, replayed on simulated tools'
   return card.engine === 'native' ? 'real agent browser' : 'simulated tools'
 }
 
