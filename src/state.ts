@@ -18,6 +18,8 @@ export interface DojoState {
   /** Human-visible panel for the current belt (HTML). */
   beltPanel: string
   status: string
+  /** Latest sensei line (deterministic, see sensei.ts). */
+  sensei: string
   agentName: string
   /** Belt ids the run is limited to (evals), or null for all. */
   limitTo: string[] | null
@@ -32,7 +34,7 @@ export class Store {
   constructor(engine: EngineKind) {
     this.state = {
       engine, phase: 'lobby', agentAttached: false, currentBelt: null, beltStartedAt: null,
-      results: [], feed: [], pendingHuman: null, beltPanel: '', status: '', agentName: '', limitTo: null,
+      results: [], feed: [], pendingHuman: null, beltPanel: '', status: '', sensei: '', agentName: '', limitTo: null,
     }
   }
 

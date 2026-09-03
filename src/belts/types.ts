@@ -32,6 +32,8 @@ export interface BeltResult {
   ms: number
   /** Short, concrete, human-readable verdict line. */
   note: string
+  /** Set by a belt that already spoke its own sensei line, so the runtime does not add a generic one. */
+  senseiSaid?: boolean
   /** Named checks with pass/fail, shown on the report card. Evidence says who witnessed it: the page saw the call, or a person pressed a control. */
   checks: { label: string; pass: boolean; evidence?: 'tool-observed' | 'human-attested' }[]
 }
@@ -61,6 +63,8 @@ export interface BeltContext {
   render: (html: string) => void
   /** Show a transient status line to the human. */
   say: (line: string) => void
+  /** Speak one sensei line for an event (deterministic). Belts call it for their specific verdicts. */
+  sensei: (event: import('../sensei').SenseiEvent) => void
 }
 
 export interface Belt {

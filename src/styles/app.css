@@ -97,6 +97,8 @@ p { margin: 0 0 12px; }
 .feed-title { font-weight: 800; font-size: 14px; letter-spacing: 0.02em; }
 .feed-count { margin-left: auto; color: var(--muted); font-size: 12px; }
 .feed-empty { color: var(--muted); font-size: 14px; padding: 14px 4px 6px; }
+.sensei { font-family: var(--mono); font-size: 12.5px; color: var(--green-ink); padding: 8px 4px 2px; }
+.sensei::before { content: 'sensei  '; color: var(--faint); letter-spacing: 0.1em; }
 .calls { list-style: none; margin: 0; padding: 6px 0 0; overflow: auto; display: grid; gap: 6px; }
 .call { border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); padding: 8px 10px; font-size: 13px; }
 .call.err { border-color: rgba(154, 59, 46, 0.4); }

@@ -4,7 +4,7 @@
 import type { ToolCallRecord } from '../webmcp/registry'
 import { esc, fmtArgs, fmtMs } from './dom'
 
-export function renderFeed(container: HTMLElement, feed: ToolCallRecord[], attached: boolean, currentBelt: string | null): void {
+export function renderFeed(container: HTMLElement, feed: ToolCallRecord[], attached: boolean, currentBelt: string | null, sensei = ''): void {
   const rows = feed.slice(-60).map((c) => {
     const state = c.ok ? 'ok' : 'err'
     return `<li class="call ${state}${c.set === currentBelt ? ' current' : ''}">
@@ -23,6 +23,7 @@ export function renderFeed(container: HTMLElement, feed: ToolCallRecord[], attac
       <span class="feed-title">${attached ? 'Agent attached' : 'Waiting for an agent'}</span>
       <span class="feed-count mono">${feed.length} call${feed.length === 1 ? '' : 's'}</span>
     </div>
+    ${sensei ? `<div class="sensei">${esc(sensei)}</div>` : ''}
     ${rows.length ? `<ol class="calls">${rows.join('')}</ol>` : `<p class="feed-empty">Every tool call your agent makes shows up here, with its arguments, its result and how long the page took to answer.</p>`}`
   const list = container.querySelector('.calls')
   if (list) list.scrollTop = list.scrollHeight

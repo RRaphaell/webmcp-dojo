@@ -6,6 +6,7 @@ import { rankFor } from './belts/types'
 import type { BeltResult } from './belts/types'
 import { renderFeed } from './ui/feed'
 import { renderInspector } from './ui/inspector'
+import { renderOpenMat } from './ui/openmat'
 import { esc, copyText } from './ui/dom'
 import { readReportFromUrl, reportUrl } from './share'
 import type { ReportCard } from './share'
@@ -25,6 +26,7 @@ export async function boot(engine: EngineKind): Promise<void> {
         <aside>
           <div class="feed" id="feed"></div>
           <details class="side-section" id="inspector-section"><summary>Tools the agent can see right now</summary><div id="inspector"></div></details>
+          <details class="side-section" id="openmat-section"><summary>Open Mat: check your own tools</summary><div id="openmat"></div></details>
         </aside>
       </div>
       <footer class="foot">
@@ -36,6 +38,7 @@ export async function boot(engine: EngineKind): Promise<void> {
   const stage = root.querySelector<HTMLElement>('#stage')!
   const feedEl = root.querySelector<HTMLElement>('#feed')!
   const inspectorEl = root.querySelector<HTMLElement>('#inspector')!
+  renderOpenMat(root.querySelector<HTMLElement>('#openmat')!)
 
   // A shared report card link opens straight into the card.
   const shared = readReportFromUrl(beltNames)
@@ -46,7 +49,7 @@ export async function boot(engine: EngineKind): Promise<void> {
 
   let lastPhase = ''
   rt.store.subscribe((s) => {
-    renderFeed(feedEl, s.feed, s.agentAttached, s.currentBelt)
+    renderFeed(feedEl, s.feed, s.agentAttached, s.currentBelt, s.sensei)
     if (s.phase === 'lobby' && shared && lastPhase === '') {
       renderReport(stage, shared, rt, true)
     } else if (s.phase === 'lobby') {

@@ -11,6 +11,8 @@ import { Store } from './state'
 import type { DojoState } from './state'
 import { reportUrl } from './share'
 import type { ReportCard } from './share'
+import { senseiLine } from './sensei'
+import type { SenseiEvent } from './sensei'
 
 export const SUGGESTED_PROMPT = "Use this site's tools to take the Dojo. Start with get_dojo_state, work through each belt in order, and tell me before you submit anything."
 
@@ -29,7 +31,11 @@ export class DojoRuntime {
     this.seed = Number(params.get('seed')) || Math.floor(Math.random() * 1e9)
     this.registry.keepPrevious = params.get('compat') === '1'
     this.registry.on((ev) => {
-      if (ev.type === 'call') this.store.push(ev.record)
+      if (ev.type === 'call') {
+        const first = !this.store.state.agentAttached
+        this.store.push(ev.record)
+        if (first) this.sensei('attached')
+      }
     })
   }
 
@@ -124,6 +130,7 @@ export class DojoRuntime {
       seed: this.seed,
       render: (html) => this.store.set({ beltPanel: html }),
       say: (line) => this.store.set({ status: line }),
+      sensei: (event) => this.sensei(event),
     }
     this.current = { belt, ctx, startedAt, startCallIndex, finished: false }
     this.store.set({ phase: 'belt', currentBelt: belt.id, beltStartedAt: Date.now(), beltPanel: '', status: '', pendingHuman: null })
@@ -141,6 +148,7 @@ export class DojoRuntime {
     const results = [...this.store.state.results.filter((r) => r.id !== result.id), result]
     this.store.set({ results, pendingHuman: null })
     this.humanAnswerValue = null
+    if (!result.senseiSaid) this.sensei(result.pass ? 'pass' : 'fail')
     // Belt tools stay registered until the next belt starts so the agent's last call resolves normally;
     // get_dojo_state already reports what to do next.
     if (!this.nextBelt()) this.finishDojo()
@@ -161,11 +169,18 @@ export class DojoRuntime {
     this.registry.clear()
     const card = this.card()
     this.store.set({ phase: 'report', currentBelt: null })
+    const passed = card.results.filter((r) => r.pass).length
+    this.sensei(passed === card.results.length && passed > 0 ? 'done-black' : passed === 0 ? 'done-low' : 'done-mid')
     history.replaceState(null, '', reportUrl(card))
   }
 
   card(): ReportCard {
     return { v: 1, at: new Date().toISOString(), agent: this.store.state.agentName, engine: this.engine, results: this.store.state.results }
+  }
+
+  /** One dry line, once per event, deterministic on the seed. */
+  sensei(event: SenseiEvent): void {
+    this.store.set({ sensei: senseiLine(event, this.seed + this.store.state.results.length) })
   }
 
   // ---- human channel ----
