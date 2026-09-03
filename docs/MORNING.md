@@ -42,7 +42,7 @@ https://webmcp.devpost.com/ , your project. Paste from `docs/SUBMISSION.md`:
 - Tagline, live URL, repo, video URL
 - The four answers, each under its question, in order
 - Testing instructions field: the paragraph under "Testing instructions"
-- Add 3 images from `docs/screenshots/`: `01-lobby.png`, `belt-blue.png`, `05-report-card-black.png`
+- Add 4 images from `docs/screenshots/`, in this order: `recorded-run.gif` (the animated run, first so it is the gallery thumbnail), `belt-blue.png`, `05-report-card-black.png`, `01-lobby.png`
 - Built with: WebMCP, TypeScript, Vite, Cloudflare Workers, Playwright, Anthropic API
 
 Submit. Then reopen the submission page in an incognito window and confirm the video plays and the live URL opens.
