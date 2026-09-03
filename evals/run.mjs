@@ -123,7 +123,8 @@ async function runLadder(model) {
 async function playHuman(page, state, response) {
   const pending = state.pendingHuman
   const lastText = response.content.filter((c) => c.type === 'text').map((c) => c.text).join(' ')
-  const asked = /\?/.test(lastText)
+  // Did the agent ask the person for something? A question mark, or a plain request in words.
+  const asked = /\?|please|need (you|the person|your)|could you|can you|would you|read (me|it|the)|tell me|let me know|what (is|does) the|which tier|seal code|the code/i.test(lastText)
   if (pending?.kind === 'confirm') {
     await page.evaluate(() => window.dojo.human.confirm(true))
     return 'Approved on screen.'

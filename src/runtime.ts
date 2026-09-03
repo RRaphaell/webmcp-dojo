@@ -24,6 +24,9 @@ export class DojoRuntime {
   private humanAnswerValue: string | boolean | null = null
   private humanReasonValue = ''
   private lastToolCount: number | null = null
+  /** ?static=1: every belt's tools are registered at load (gated to the active belt) instead of per belt. */
+  private staticMode = false
+  private contexts = new Map<string, BeltContext>()
   private flagLog: { sourceTool: string; quoted: string; why: string; at: number; belt: string | null }[] = []
   private complaintLog: { tool: string; problem: string; belt: string | null }[] = []
   private seed: number
@@ -34,6 +37,7 @@ export class DojoRuntime {
     const params = new URLSearchParams(location.search)
     this.seed = Number(params.get('seed')) || Math.floor(Math.random() * 1e9)
     this.registry.keepPrevious = params.get('compat') === '1'
+    this.staticMode = params.get('static') === '1'
     if (params.get('quick') === '1') this.store.set({ limitTo: ['green', 'blue', 'brown'] })
     this.registry.on((ev) => {
       if (ev.type === 'set-changed') {
@@ -68,7 +72,23 @@ export class DojoRuntime {
 
   async boot(): Promise<void> {
     try {
-      await this.registry.registerPersistent(this.persistentTools())
+      const specs = this.persistentTools()
+      if (this.staticMode) {
+        for (const belt of this.belts) {
+          const ctx = this.contextFor(belt)
+          for (const spec of belt.tools(ctx)) {
+            specs.push({
+              ...spec,
+              execute: async (args) => {
+                const cur = this.current
+                if (!cur || cur.belt.id !== belt.id || cur.finished) return text(`${spec.name} belongs to the ${belt.name}. Call start_belt with belt="${belt.id}" first, or get_dojo_state to see where you are.`)
+                return spec.execute(args)
+              },
+            })
+          }
+        }
+      }
+      await this.registry.registerPersistent(specs)
     } catch (err) {
       this.store.set({ registrationError: err instanceof Error ? err.message : String(err) })
     }
@@ -147,7 +167,7 @@ export class DojoRuntime {
       const b = this.current.belt
       lines.push(`Current belt: ${b.name} (${b.id}). ${b.tests}`)
       lines.push(`Rules: ${b.briefing} Par: ${b.parCalls} calls.`)
-      lines.push(`Tools available now: ${this.registry.tools.map((t) => t.spec.name).join(', ')}.`)
+      lines.push(`Tools for this belt: ${[...(this.beltToolNames.get(b.id) ?? [])].join(', ')}. Always available: get_dojo_state, start_belt, report_suspicious_text, report_unclear_tool, finish_and_get_card.`)
       if (s.pendingHuman) lines.push(`Waiting on the person: ${s.pendingHuman.prompt}`)
       return lines.join('\n')
     }
@@ -171,21 +191,25 @@ export class DojoRuntime {
       this.abandonCurrent()
     }
     await this.runBelt(belt)
-    return text(`${belt.name} started. ${belt.briefing} Tools available now: ${this.registry.tools.map((t) => t.spec.name).join(', ')}.`)
+    return text(`${belt.name} started. ${belt.briefing} Tools for this belt: ${[...(this.beltToolNames.get(belt.id) ?? [])].join(', ')}. Always available: get_dojo_state, start_belt, report_suspicious_text, report_unclear_tool, finish_and_get_card.`)
   }
 
-  private async runBelt(belt: Belt): Promise<void> {
-    const startCallIndex = this.store.state.feed.length
-    const startedAt = performance.now()
+  /** One context per belt per run. In static mode it is created at boot (tools need it); otherwise at start. */
+  private contextFor(belt: Belt): BeltContext {
+    const existing = this.contexts.get(belt.id)
+    if (existing) return existing
     const self = this
+    const startIndexOf = () => this.beltStart.get(belt.id) ?? 0
+    const beltCalls = () => this.store.state.feed.slice(startIndexOf()).filter((c) => c.set === belt.id || (this.staticMode && c.set === 'dojo' && this.beltToolNames.get(belt.id)?.has(c.tool)))
     const ctx: BeltContext = {
-      calls: () => this.store.state.feed.slice(startCallIndex).filter((c) => c.set === belt.id),
-      callCount: () => this.store.state.feed.slice(startCallIndex).filter((c) => c.set === belt.id).length + (this.registry.inFlight > 0 ? 1 : 0),
+      calls: beltCalls,
+      callCount: () => beltCalls().length + (this.registry.inFlight > 0 ? 1 : 0),
       askHuman: (req) => this.askHuman(req),
       pending: () => this.store.state.pendingHuman,
       humanAnswer: () => this.humanAnswerValue,
       humanReason: () => this.humanReasonValue,
       clearHumanAnswer: () => { this.humanAnswerValue = null; this.humanReasonValue = '' },
+      allCalls: () => this.store.state.feed.slice(startIndexOf()),
       resolveHuman: (value) => {
         const kind = this.store.state.pendingHuman?.kind
         this.humanAnswerValue = value
@@ -195,7 +219,6 @@ export class DojoRuntime {
         const text = typeof value === 'boolean' ? (value ? 'human approved' : 'human rejected') : kind === 'clue' ? 'human revealed the seal' : 'human disclosed the answer on screen'
         this.store.event({ kind: 'human', at: performance.now(), text })
       },
-      allCalls: () => this.store.state.feed.slice(startCallIndex),
       flags: () => this.flagLog.filter((f) => f.belt === belt.id).map(({ sourceTool, quoted, why, at }) => ({ sourceTool, quoted, why, at })),
       complaints: () => this.complaintLog.filter((c) => c.belt === belt.id).map(({ tool, problem }) => ({ tool, problem })),
       finish: () => {
@@ -205,15 +228,33 @@ export class DojoRuntime {
         else self.finishBelt(true)
       },
       seed: this.seed,
-      render: (html, bind) => this.store.set({ beltPanel: html, beltPanelBind: bind ?? null }),
-      say: (line) => this.store.set({ status: line }),
+      render: (html, bind) => { if (self.current?.belt === belt) this.store.set({ beltPanel: html, beltPanelBind: bind ?? null }) },
+      say: (line) => { if (self.current?.belt === belt) this.store.set({ status: line }) },
       sensei: (event) => this.sensei(event),
     }
+    this.contexts.set(belt.id, ctx)
+    return ctx
+  }
+
+  private beltStart = new Map<string, number>()
+  private beltToolNames = new Map<string, Set<string>>()
+
+  private async runBelt(belt: Belt): Promise<void> {
+    const startCallIndex = this.store.state.feed.length
+    const startedAt = performance.now()
+    this.beltStart.set(belt.id, startCallIndex)
+    const ctx = this.contextFor(belt)
     this.current = { belt, ctx, startedAt, startCallIndex, finished: false, finishPending: false }
     this.humanAnswerValue = null
     this.humanReasonValue = ''
     this.store.set({ phase: 'belt', currentBelt: belt.id, beltStartedAt: Date.now(), beltPanel: '', beltPanelBind: null, status: '', pendingHuman: null })
-    await this.registry.activate(belt.id, belt.tools(ctx))
+    if (this.staticMode) {
+      this.beltToolNames.set(belt.id, new Set(belt.tools(ctx).map((t) => t.name)))
+    } else {
+      const specs = belt.tools(ctx)
+      this.beltToolNames.set(belt.id, new Set(specs.map((t) => t.name)))
+      await this.registry.activate(belt.id, specs)
+    }
     belt.start(ctx)
   }
 
@@ -311,6 +352,8 @@ export class DojoRuntime {
     this.registry.clear()
     this.flagLog = []
     this.complaintLog = []
+    if (!this.staticMode) this.contexts.clear()
+    this.beltStart.clear()
     this.store.set({ phase: 'lobby', currentBelt: null, results: [], feed: [], events: [], pendingHuman: null, beltPanel: '', beltPanelBind: null, status: '', sensei: '' })
     history.replaceState(null, '', location.pathname)
   }
