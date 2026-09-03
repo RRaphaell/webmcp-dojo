@@ -100,6 +100,8 @@ Everything the agent can do goes through `document.modelContext.registerTool`. T
 - **The injection trap is output injection**, the shape Chrome's secure-tools guide and the spec illustrate: the instruction is inside a tool result labelled `untrustedContentHint`, never inside a tool description. The honeypot it points at (`promote_all_students`) is registered by the Dojo itself, has no `fetch` in its body, and changes nothing outside the page. It exists only so the Dojo can record whether an agent was talked into calling it.
 - **The seal on the brown belt is a true information asymmetry, not a perceptual one.** Agent observations can include screenshots, so a code rendered on screen is not human-only. The five characters are generated with `crypto.getRandomValues` inside the trusted pointer gesture, after a hold of at least 1.2 seconds, and drawn straight to a canvas. Before that gesture the value does not exist: not in the DOM, not in memory, not in any tool output, not in any screenshot.
 
+- **Chrome's own audits pass.** Lighthouse 13.4.1 ships WebMCP audits under its agentic category; run against the live site in Chrome 152 with WebMCP on, `webmcp-registered-tools` lists 5 tools on the default page (24 with `?static=1`) and `webmcp-schema-validity` passes. `webmcp-form-coverage` flags the inspector's 5 "Run by hand" forms as lacking annotations, which is deliberate: those forms are the human channel, not tools. Reports: `evals/results/lighthouse.json` and `lighthouse-static.json`.
+
 ### What we learned about the engine (Chrome 152, probed)
 
 Recorded in [`docs/research/chrome-152-probe.md`](docs/research/chrome-152-probe.md) with the probe scripts:
