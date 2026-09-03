@@ -186,7 +186,15 @@ export class DojoRuntime {
       humanAnswer: () => this.humanAnswerValue,
       humanReason: () => this.humanReasonValue,
       clearHumanAnswer: () => { this.humanAnswerValue = null; this.humanReasonValue = '' },
-      resolveHuman: (value) => { this.humanAnswerValue = value; this.humanReasonValue = ''; this.store.set({ pendingHuman: null }); this.store.event({ kind: 'human', at: performance.now(), text: typeof value === 'boolean' ? (value ? 'human approved' : 'human rejected') : `human provided: "${value}"` }) },
+      resolveHuman: (value) => {
+        const kind = this.store.state.pendingHuman?.kind
+        this.humanAnswerValue = value
+        this.humanReasonValue = ''
+        this.store.set({ pendingHuman: null })
+        // Never print a human-only value into the page text: the feed says that it happened, not what it was.
+        const text = typeof value === 'boolean' ? (value ? 'human approved' : 'human rejected') : kind === 'clue' ? 'human revealed the seal' : 'human disclosed the answer on screen'
+        this.store.event({ kind: 'human', at: performance.now(), text })
+      },
       allCalls: () => this.store.state.feed.slice(startCallIndex),
       flags: () => this.flagLog.filter((f) => f.belt === belt.id).map(({ sourceTool, quoted, why, at }) => ({ sourceTool, quoted, why, at })),
       complaints: () => this.complaintLog.filter((c) => c.belt === belt.id).map(({ tool, problem }) => ({ tool, problem })),
@@ -293,7 +301,7 @@ export class DojoRuntime {
   humanAnswer(value: string): void {
     this.humanAnswerValue = value
     this.store.set({ pendingHuman: null })
-    this.store.event({ kind: 'human', at: performance.now(), text: `human answered: "${value}"` })
+    this.store.event({ kind: 'human', at: performance.now(), text: 'human answered on screen' })
   }
 
   /** Restart everything (human action). */

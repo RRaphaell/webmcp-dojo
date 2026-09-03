@@ -53,7 +53,7 @@ export async function run({ native }) {
     // The card is on the person's screen, and the tool did not block waiting for it.
     let pending = await b.page.evaluate(() => window.dojo.state().pendingHuman)
     assert(pending && pending.kind === 'confirm' && /fri-kids from 16:00 to 17:00/.test(pending.prompt), 'confirm card is pending: ' + JSON.stringify(pending))
-    assert(await b.page.locator('.human-box #h-yes').count() === 1, 'Approve button is on the page')
+    assert(await b.page.locator('#dock #h-yes').count() === 1, 'Approve button is on the page')
 
     const second = await callTool(b.page, 'propose_change', { class_id: 'thu-kids', new_time: '16:30', reason: 'the school bus arrives 16:15' })
     assert(/Proposal p-1 is still on the person's screen/.test(second.text) && /check_proposal with proposal_id "p-1"/.test(second.text), 'a second proposal while one is pending guides: ' + second.text)
@@ -104,7 +104,7 @@ export async function run({ native }) {
     assert(check(r, 'recovered from the rejection').pass === true, 'recovered_from_rejection')
     assert(r.checks.every((c) => c.evidence === 'tool-observed'), 'evidence tags: ' + JSON.stringify(r.checks))
     // The ladder rule: orange alone is not a rank, white and yellow are under it.
-    assert(state.done === true && state.rank === 'Unranked', 'rank without the belts below it: ' + state.rank)
+    assert(state.done === true && state.rank === 'No belt', 'rank without the belts below it: ' + state.rank)
 
     // ---- run B: proposed blind, polled the check, got the wrong change approved ----
     await open()
@@ -116,7 +116,7 @@ export async function run({ native }) {
     assert(/p-1 is still pending\. That is 4 checks in 20 seconds\. Stop polling/.test(poll.text), 'polling gets told to stop: ' + poll.text)
 
     // The person's own button, a real trusted click this time.
-    await b.page.click('.human-box #h-yes')
+    await b.page.click('#dock #h-yes')
     await b.page.waitForFunction(() => window.dojo.state().pendingHuman === null, null, { timeout: 5000 })
     const offTarget = await callTool(b.page, 'check_proposal', { proposal_id: 'p-1' })
     assert(/Written: fri-kids now starts 17:00, was 16:00\./.test(offTarget.text), 'the approved write is honest about what it wrote: ' + offTarget.text)
