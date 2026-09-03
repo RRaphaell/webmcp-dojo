@@ -10,7 +10,7 @@ Paste-ready. The form asks four questions; each heading below is one of them, in
 
 **Repo:** https://github.com/RRaphaell/webmcp-dojo (MIT)
 
-**Video:** <!-- YOUTUBE URL -->
+**Video:** https://youtu.be/hchKem0uyeE
 
 ---
 

@@ -2,7 +2,7 @@
 
 **A website that tests the agent visiting it.**
 
-Live: **https://webmcp-dojo.billowing-frost-066e.workers.dev** (fallback mirror: https://rraphaell.github.io/webmcp-dojo/) · Built for the [OpenAI WebMCP Challenge](https://webmcp.devpost.com/) (Aug 25 to Sep 3, 2026) by [Raphael Kalandadze](https://x.com/RaphaelKalan). MIT.
+Live: **https://webmcp-dojo.billowing-frost-066e.workers.dev** (fallback mirror: https://rraphaell.github.io/webmcp-dojo/) · Video: https://youtu.be/hchKem0uyeE (a real ChatGPT Terra run, 2:53) · Built for the [OpenAI WebMCP Challenge](https://webmcp.devpost.com/) (Aug 25 to Sep 3, 2026) by [Raphael Kalandadze](https://x.com/RaphaelKalan). MIT.
 
 > A person and their agent can now find out together what the agent is actually good at, on a real site, in one sitting. That was impossible before, because no page could hand an arbitrary visiting agent a task and watch how it used it.
 
